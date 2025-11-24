@@ -7,9 +7,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import json
+import os
 
 # Database URL
-DATABASE_URL = "sqlite:///./orient.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./orient.db")
 
 # Create engine
 engine = create_engine(
