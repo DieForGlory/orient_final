@@ -7,10 +7,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import json
-import os
 
 # Database URL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./orient.db")
+DATABASE_URL = "sqlite:///./orient.db"
 
 # Create engine
 engine = create_engine(
@@ -68,6 +67,15 @@ class Product(Base):
     dial_color = Column(String, index=True)  # black, blue, white, green, etc
     water_resistance = Column(String, index=True)  # 200m, 100m, 50m
     
+    # SEO fields
+    seo_title = Column(String, nullable=True)
+    seo_description = Column(Text, nullable=True)
+    seo_keywords = Column(String, nullable=True)
+    
+    # Facebook Open Graph fields
+    fb_title = Column(String, nullable=True)
+    fb_description = Column(Text, nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -90,6 +98,11 @@ class Product(Base):
             "caseMaterial": self.case_material,
             "dialColor": self.dial_color,
             "waterResistance": self.water_resistance,
+            "seoTitle": self.seo_title,
+            "seoDescription": self.seo_description,
+            "seoKeywords": self.seo_keywords,
+            "fbTitle": self.fb_title,
+            "fbDescription": self.fb_description,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
             "updatedAt": self.updated_at.isoformat() if self.updated_at else None,
         }

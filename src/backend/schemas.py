@@ -27,6 +27,13 @@ class ProductBase(BaseModel):
     inStock: bool = True
     stockQuantity: int = 0
     sku: Optional[str] = None
+    # SEO fields
+    seoTitle: Optional[str] = None
+    seoDescription: Optional[str] = None
+    seoKeywords: Optional[str] = None
+    # Facebook Open Graph fields
+    fbTitle: Optional[str] = None
+    fbDescription: Optional[str] = None
 
 class ProductCreate(ProductBase):
     pass
@@ -42,6 +49,13 @@ class ProductUpdate(BaseModel):
     specs: Optional[Dict[str, str]] = None
     inStock: Optional[bool] = None
     stockQuantity: Optional[int] = None
+    # SEO fields
+    seoTitle: Optional[str] = None
+    seoDescription: Optional[str] = None
+    seoKeywords: Optional[str] = None
+    # Facebook Open Graph fields
+    fbTitle: Optional[str] = None
+    fbDescription: Optional[str] = None
 
 # Collection schemas
 class CollectionBase(BaseModel):

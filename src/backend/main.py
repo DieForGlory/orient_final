@@ -46,8 +46,9 @@ app.add_middleware(
 
 # Include routers BEFORE mounting static files
 app.include_router(admin.router)
-app.include_router(products.router)
 app.include_router(products_export.router)
+app.include_router(products.router)
+
 app.include_router(collections.router)
 app.include_router(orders.router)
 app.include_router(content.router)

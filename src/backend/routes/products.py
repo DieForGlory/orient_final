@@ -229,6 +229,11 @@ async def create_product(
         case_material=getattr(product, 'caseMaterial', None),
         dial_color=getattr(product, 'dialColor', None),
         water_resistance=getattr(product, 'waterResistance', None),
+        seo_title=getattr(product, 'seoTitle', None),
+        seo_description=getattr(product, 'seoDescription', None),
+        seo_keywords=getattr(product, 'seoKeywords', None),
+        fb_title=getattr(product, 'fbTitle', None),
+        fb_description=getattr(product, 'fbDescription', None),
     )
     
     db.add(db_product)
@@ -270,6 +275,16 @@ async def update_product(
             setattr(db_product, "dial_color", value)
         elif key == "waterResistance":
             setattr(db_product, "water_resistance", value)
+        elif key == "seoTitle":
+            setattr(db_product, "seo_title", value)
+        elif key == "seoDescription":
+            setattr(db_product, "seo_description", value)
+        elif key == "seoKeywords":
+            setattr(db_product, "seo_keywords", value)
+        elif key == "fbTitle":
+            setattr(db_product, "fb_title", value)
+        elif key == "fbDescription":
+            setattr(db_product, "fb_description", value)
         else:
             setattr(db_product, key, value)
     

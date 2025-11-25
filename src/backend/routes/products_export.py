@@ -35,7 +35,8 @@ async def export_products(
         "id", "name", "collection", "price", "image", "images",
         "description", "features", "specs", "in_stock", "stock_quantity",
         "sku", "is_featured", "movement", "case_material", "dial_color",
-        "water_resistance", "created_at", "updated_at"
+        "water_resistance", "seo_title", "seo_description", "seo_keywords",
+        "fb_title", "fb_description", "created_at", "updated_at"
     ]
     
     # Style headers
@@ -69,8 +70,13 @@ async def export_products(
         ws.cell(row=row_num, column=15).value = product.case_material
         ws.cell(row=row_num, column=16).value = product.dial_color
         ws.cell(row=row_num, column=17).value = product.water_resistance
-        ws.cell(row=row_num, column=18).value = product.created_at.isoformat() if product.created_at else ""
-        ws.cell(row=row_num, column=19).value = product.updated_at.isoformat() if product.updated_at else ""
+        ws.cell(row=row_num, column=18).value = product.seo_title
+        ws.cell(row=row_num, column=19).value = product.seo_description
+        ws.cell(row=row_num, column=20).value = product.seo_keywords
+        ws.cell(row=row_num, column=21).value = product.fb_title
+        ws.cell(row=row_num, column=22).value = product.fb_description
+        ws.cell(row=row_num, column=23).value = product.created_at.isoformat() if product.created_at else ""
+        ws.cell(row=row_num, column=24).value = product.updated_at.isoformat() if product.updated_at else ""
     
     # Auto-adjust column widths
     for column in ws.columns:
@@ -168,6 +174,11 @@ async def import_products(
                     "case_material": row_data.get("case_material"),
                     "dial_color": row_data.get("dial_color"),
                     "water_resistance": row_data.get("water_resistance"),
+                    "seo_title": row_data.get("seo_title"),
+                    "seo_description": row_data.get("seo_description"),
+                    "seo_keywords": row_data.get("seo_keywords"),
+                    "fb_title": row_data.get("fb_title"),
+                    "fb_description": row_data.get("fb_description"),
                 }
                 
                 if existing_product:

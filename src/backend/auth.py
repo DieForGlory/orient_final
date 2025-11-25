@@ -9,16 +9,11 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-import os
+
 from database import get_db, User
 
 # Security configuration
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    # Генерируем случайный ключ, если не задан (или можно кидать ошибку)
-    import secrets
-    SECRET_KEY = secrets.token_urlsafe(32)
-    print(f"WARNING: SECRET_KEY not found. Generated temporary: {SECRET_KEY}")
+SECRET_KEY = "your-secret-key-change-in-production-use-env-variable"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 

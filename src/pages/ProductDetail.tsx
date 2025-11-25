@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, createElement } from 'react';
 import { ShoppingBagIcon, ShareIcon, CheckCircleIcon, TruckIcon, ShieldCheckIcon, RotateCcwIcon, ChevronLeftIcon, ChevronRightIcon, CheckIcon } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
@@ -15,6 +15,11 @@ interface Product {
   specs: Record<string, string>;
   inStock: boolean;
   sku: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  fbTitle?: string;
+  fbDescription?: string;
 }
 export function ProductDetail() {
   const {
@@ -53,6 +58,52 @@ export function ProductDetail() {
       fetchProduct(id);
     }
   }, [id]);
+  // Update SEO meta tags when product loads
+  useEffect(() => {
+    if (!product) return;
+    // Update document title
+    const title = product.seoTitle || `${product.name} | Orient Watch`;
+    document.title = title;
+    // Update or create meta tags
+    const updateMetaTag = (name: string, content: string, property?: string) => {
+      if (!content) return;
+      const selector = property ? `meta[property="${property}"]` : `meta[name="${name}"]`;
+      let meta = document.querySelector(selector) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement('meta');
+        if (property) {
+          meta.setAttribute('property', property);
+        } else {
+          meta.setAttribute('name', name);
+        }
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+    // SEO meta tags
+    updateMetaTag('description', product.seoDescription || product.description);
+    updateMetaTag('keywords', product.seoKeywords || `${product.collection}, Orient, часы`);
+    // Open Graph / Facebook meta tags
+    updateMetaTag('og:title', product.fbTitle || product.seoTitle || product.name, 'og:title');
+    updateMetaTag('og:description', product.fbDescription || product.seoDescription || product.description, 'og:description');
+    updateMetaTag('og:image', product.image, 'og:image');
+    updateMetaTag('og:type', 'product', 'og:type');
+    updateMetaTag('og:url', window.location.href, 'og:url');
+    // Twitter Card meta tags
+    updateMetaTag('twitter:card', 'summary_large_image', 'twitter:card');
+    updateMetaTag('twitter:title', product.fbTitle || product.seoTitle || product.name, 'twitter:title');
+    updateMetaTag('twitter:description', product.fbDescription || product.seoDescription || product.description, 'twitter:description');
+    updateMetaTag('twitter:image', product.image, 'twitter:image');
+    // Product-specific meta tags
+    updateMetaTag('product:price:amount', product.price.toString(), 'product:price:amount');
+    updateMetaTag('product:price:currency', 'RUB', 'product:price:currency');
+    updateMetaTag('product:availability', product.inStock ? 'in stock' : 'out of stock', 'product:availability');
+    updateMetaTag('product:brand', 'Orient', 'product:brand');
+    // Cleanup function to reset title on unmount
+    return () => {
+      document.title = 'Orient Watch';
+    };
+  }, [product]);
   const fetchProduct = async (productId: string) => {
     setLoading(true);
     try {
@@ -107,7 +158,6 @@ export function ProductDetail() {
   const handleAddToCart = () => {
     if (isAddingToCart || !product) return;
     setIsAddingToCart(true);
-    // Add to cart using CartContext
     addItem({
       id: product.id,
       name: product.name,
