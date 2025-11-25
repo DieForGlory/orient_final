@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 
 from database import init_db
-from routes import admin, products, collections, orders, content, upload, bookings
+from routes import admin, products, collections, orders, content, upload, bookings, products_export
 
 # Load environment variables
 load_dotenv()
@@ -24,8 +24,9 @@ app = FastAPI(
 )
 
 # CORS - Get allowed origins from environment variable
+# Default includes localhost and common Visual Studio Code ports
 cors_origins = os.getenv(
-    "CORS_ORIGINS",
+    "CORS_ORIGINS", 
     "http://localhost:5173,http://localhost:3000,http://localhost:5174,http://localhost:8080,http://127.0.0.1:5173,http://127.0.0.1:3000,http://127.0.0.1:5174,http://127.0.0.1:8080"
 )
 allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
@@ -46,6 +47,7 @@ app.add_middleware(
 # Include routers BEFORE mounting static files
 app.include_router(admin.router)
 app.include_router(products.router)
+app.include_router(products_export.router)
 app.include_router(collections.router)
 app.include_router(orders.router)
 app.include_router(content.router)

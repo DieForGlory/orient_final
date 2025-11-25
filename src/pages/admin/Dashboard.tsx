@@ -68,85 +68,95 @@ export function AdminDashboard() {
         <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
       </div>;
   }
-  return <div className="space-y-8">
+  return <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold tracking-tight mb-2">Dashboard</h1>
-        <p className="text-black/60">Обзор статистики и последних заказов</p>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
+          Dashboard
+        </h1>
+        <p className="text-sm sm:text-base text-black/60">
+          Обзор статистики и последних заказов
+        </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Total Products */}
-        <div className="bg-white p-6 border-2 border-black/10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-50 flex items-center justify-center">
-              <PackageIcon className="w-6 h-6 text-blue-600" strokeWidth={2} />
+        <div className="bg-white p-4 sm:p-6 border-2 border-black/10">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 flex items-center justify-center">
+              <PackageIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" strokeWidth={2} />
             </div>
-            <TrendingUpIcon className="w-5 h-5 text-green-600" strokeWidth={2} />
+            <TrendingUpIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold mb-1">{stats?.totalProducts || 0}</p>
-          <p className="text-sm text-black/60 uppercase tracking-wider">
+          <p className="text-2xl sm:text-3xl font-bold mb-1">
+            {stats?.totalProducts || 0}
+          </p>
+          <p className="text-xs sm:text-sm text-black/60 uppercase tracking-wider">
             Товаров
           </p>
         </div>
 
         {/* Total Orders */}
-        <div className="bg-white p-6 border-2 border-black/10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-50 flex items-center justify-center">
-              <ShoppingBagIcon className="w-6 h-6 text-purple-600" strokeWidth={2} />
+        <div className="bg-white p-4 sm:p-6 border-2 border-black/10">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-50 flex items-center justify-center">
+              <ShoppingBagIcon className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" strokeWidth={2} />
             </div>
-            <TrendingUpIcon className="w-5 h-5 text-green-600" strokeWidth={2} />
+            <TrendingUpIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold mb-1">{stats?.totalOrders || 0}</p>
-          <p className="text-sm text-black/60 uppercase tracking-wider">
+          <p className="text-2xl sm:text-3xl font-bold mb-1">
+            {stats?.totalOrders || 0}
+          </p>
+          <p className="text-xs sm:text-sm text-black/60 uppercase tracking-wider">
             Заказов
           </p>
         </div>
 
         {/* Total Revenue */}
-        <div className="bg-white p-6 border-2 border-black/10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-green-50 flex items-center justify-center">
-              <TrendingUpIcon className="w-6 h-6 text-green-600" strokeWidth={2} />
+        <div className="bg-white p-4 sm:p-6 border-2 border-black/10">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 flex items-center justify-center">
+              <TrendingUpIcon className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" strokeWidth={2} />
             </div>
-            <TrendingUpIcon className="w-5 h-5 text-green-600" strokeWidth={2} />
+            <TrendingUpIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold mb-1">
+          <p className="text-2xl sm:text-3xl font-bold mb-1">
             {(stats?.totalRevenue || 0).toLocaleString('ru-RU')} ₽
           </p>
-          <p className="text-sm text-black/60 uppercase tracking-wider">
+          <p className="text-xs sm:text-sm text-black/60 uppercase tracking-wider">
             Выручка
           </p>
         </div>
 
         {/* Total Users */}
-        <div className="bg-white p-6 border-2 border-black/10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-red-50 flex items-center justify-center">
-              <UsersIcon className="w-6 h-6 text-red-600" strokeWidth={2} />
+        <div className="bg-white p-4 sm:p-6 border-2 border-black/10">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-50 flex items-center justify-center">
+              <UsersIcon className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" strokeWidth={2} />
             </div>
-            <TrendingUpIcon className="w-5 h-5 text-green-600" strokeWidth={2} />
+            <TrendingUpIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" strokeWidth={2} />
           </div>
-          <p className="text-3xl font-bold mb-1">{stats?.totalUsers || 0}</p>
-          <p className="text-sm text-black/60 uppercase tracking-wider">
+          <p className="text-2xl sm:text-3xl font-bold mb-1">
+            {stats?.totalUsers || 0}
+          </p>
+          <p className="text-xs sm:text-sm text-black/60 uppercase tracking-wider">
             Пользователей
           </p>
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {/* Pending Orders */}
-        <div className="bg-yellow-50 p-6 border-2 border-yellow-200">
-          <div className="flex items-center space-x-4">
-            <ClockIcon className="w-8 h-8 text-yellow-600" strokeWidth={2} />
+        <div className="bg-yellow-50 p-4 sm:p-6 border-2 border-yellow-200">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <ClockIcon className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600 flex-shrink-0" strokeWidth={2} />
             <div>
-              <p className="text-3xl font-bold text-yellow-900">
+              <p className="text-2xl sm:text-3xl font-bold text-yellow-900">
                 {stats?.pendingOrders || 0}
               </p>
-              <p className="text-sm text-yellow-700 uppercase tracking-wider">
+              <p className="text-xs sm:text-sm text-yellow-700 uppercase tracking-wider">
                 Ожидают обработки
               </p>
             </div>
@@ -154,14 +164,14 @@ export function AdminDashboard() {
         </div>
 
         {/* Completed Orders */}
-        <div className="bg-green-50 p-6 border-2 border-green-200">
-          <div className="flex items-center space-x-4">
-            <CheckCircleIcon className="w-8 h-8 text-green-600" strokeWidth={2} />
+        <div className="bg-green-50 p-4 sm:p-6 border-2 border-green-200">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <CheckCircleIcon className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" strokeWidth={2} />
             <div>
-              <p className="text-3xl font-bold text-green-900">
+              <p className="text-2xl sm:text-3xl font-bold text-green-900">
                 {stats?.completedOrders || 0}
               </p>
-              <p className="text-sm text-green-700 uppercase tracking-wider">
+              <p className="text-xs sm:text-sm text-green-700 uppercase tracking-wider">
                 Завершено
               </p>
             </div>
@@ -171,18 +181,19 @@ export function AdminDashboard() {
 
       {/* Recent Orders */}
       <div className="bg-white border-2 border-black/10">
-        <div className="p-6 border-b border-black/10">
+        <div className="p-4 sm:p-6 border-b border-black/10">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight uppercase">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight uppercase">
               Последние заказы
             </h2>
-            <Link to="/admin/orders" className="text-sm text-[#C8102E] hover:underline font-medium uppercase tracking-wider">
+            <Link to="/admin/orders" className="text-xs sm:text-sm text-[#C8102E] hover:underline font-medium uppercase tracking-wider">
               Все заказы
             </Link>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-black/10">
               <tr>
@@ -227,6 +238,34 @@ export function AdminDashboard() {
                 </tr>}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden divide-y divide-black/10">
+          {recentOrders.length > 0 ? recentOrders.map(order => <div key={order.id} className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold">#{order.id}</span>
+                  <span className={`px-2 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusColor(order.status)}`}>
+                    {getStatusText(order.status)}
+                  </span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-black/60">Клиент:</span>
+                    <span className="font-medium">{order.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-black/60">Сумма:</span>
+                    <span className="font-bold">
+                      {order.total.toLocaleString('ru-RU')} ₽
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-black/60">Дата:</span>
+                    <span>{order.date}</span>
+                  </div>
+                </div>
+              </div>) : <div className="p-8 text-center text-black/40">Нет заказов</div>}
         </div>
       </div>
     </div>;

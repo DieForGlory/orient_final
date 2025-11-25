@@ -218,7 +218,7 @@ export function Boutique() {
                 <label className="block text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">
                   Имя <span className="text-[#C8102E]">*</span>
                 </label>
-                <input type="text" value={formData.name} onChange={e => handleInputChange('name', e.target.value)} className={`w-full px-4 sm:px-6 py-3 sm:py-4 border-2 ${errors.name ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} placeholder="Ваше имя" disabled={submitting} />
+                <input type="text" value={formData.name} onChange={e => handleInputChange('name', e.target.value)} className={`w-full max-w-full px-4 sm:px-6 py-3 sm:py-4 border-2 ${errors.name ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} placeholder="Ваше имя" disabled={submitting} />
                 {errors.name && <p className="text-red-500 text-xs mt-2">{errors.name}</p>}
               </div>
 
@@ -226,7 +226,7 @@ export function Boutique() {
                 <label className="block text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">
                   Телефон <span className="text-[#C8102E]">*</span>
                 </label>
-                <input type="tel" value={formData.phone} onChange={e => handleInputChange('phone', e.target.value)} className={`w-full px-4 sm:px-6 py-3 sm:py-4 border-2 ${errors.phone ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} placeholder="+998 90 123 45 67" disabled={submitting} />
+                <input type="tel" value={formData.phone} onChange={e => handleInputChange('phone', e.target.value)} className={`w-full max-w-full px-4 sm:px-6 py-3 sm:py-4 border-2 ${errors.phone ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} placeholder="+998 90 123 45 67" disabled={submitting} />
                 {errors.phone && <p className="text-red-500 text-xs mt-2">{errors.phone}</p>}
               </div>
 
@@ -234,28 +234,36 @@ export function Boutique() {
                 <label className="block text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">
                   Email <span className="text-[#C8102E]">*</span>
                 </label>
-                <input type="email" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} className={`w-full px-4 sm:px-6 py-3 sm:py-4 border-2 ${errors.email ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} placeholder="your@email.com" disabled={submitting} />
+                <input type="email" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} className={`w-full max-w-full px-4 sm:px-6 py-3 sm:py-4 border-2 ${errors.email ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} placeholder="your@email.com" disabled={submitting} />
                 {errors.email && <p className="text-red-500 text-xs mt-2">{errors.email}</p>}
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">
                   Дата <span className="text-[#C8102E]">*</span>
                 </label>
                 <div className="relative">
-                  <CalendarIcon className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-black/40 pointer-events-none" strokeWidth={2} />
-                  <input type="date" value={formData.date} onChange={e => handleInputChange('date', e.target.value)} className={`w-full pl-10 sm:pl-12 pr-4 sm:pr-6 py-3 sm:py-4 border-2 ${errors.date ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} disabled={submitting} />
+                  <CalendarIcon className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-black/40 pointer-events-none z-10" strokeWidth={2} />
+                  <input type="date" value={formData.date} onChange={e => handleInputChange('date', e.target.value)} min={new Date().toISOString().split('T')[0]} className={`w-full max-w-full pl-10 sm:pl-12 pr-4 sm:pr-6 py-3 sm:py-4 border-2 ${errors.date ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors appearance-none`} style={{
+                  minWidth: 0,
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'textfield'
+                }} disabled={submitting} />
                 </div>
                 {errors.date && <p className="text-red-500 text-xs mt-2">{errors.date}</p>}
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">
                   Время <span className="text-[#C8102E]">*</span>
                 </label>
                 <div className="relative">
-                  <ClockIcon className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-black/40 pointer-events-none" strokeWidth={2} />
-                  <input type="time" value={formData.time} onChange={e => handleInputChange('time', e.target.value)} className={`w-full pl-10 sm:pl-12 pr-4 sm:pr-6 py-3 sm:py-4 border-2 ${errors.time ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors`} disabled={submitting} />
+                  <ClockIcon className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-black/40 pointer-events-none z-10" strokeWidth={2} />
+                  <input type="time" value={formData.time} onChange={e => handleInputChange('time', e.target.value)} className={`w-full max-w-full pl-10 sm:pl-12 pr-4 sm:pr-6 py-3 sm:py-4 border-2 ${errors.time ? 'border-red-500' : 'border-black/20'} focus:border-[#C8102E] focus:outline-none transition-colors appearance-none`} style={{
+                  minWidth: 0,
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'textfield'
+                }} disabled={submitting} />
                 </div>
                 {errors.time && <p className="text-red-500 text-xs mt-2">{errors.time}</p>}
               </div>
@@ -264,7 +272,7 @@ export function Boutique() {
                 <label className="block text-xs sm:text-sm font-medium tracking-wider uppercase mb-2 sm:mb-3">
                   Сообщение
                 </label>
-                <textarea value={formData.message} onChange={e => handleInputChange('message', e.target.value)} rows={4} className="w-full px-4 sm:px-6 py-3 sm:py-4 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none transition-colors resize-none" placeholder="Расскажите, какие часы вас интересуют..." disabled={submitting} />
+                <textarea value={formData.message} onChange={e => handleInputChange('message', e.target.value)} rows={4} className="w-full max-w-full px-4 sm:px-6 py-3 sm:py-4 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none transition-colors resize-none" placeholder="Расскажите, какие часы вас интересуют..." disabled={submitting} />
               </div>
             </div>
 

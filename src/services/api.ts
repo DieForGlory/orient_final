@@ -105,6 +105,54 @@ class ApiService {
     });
   }
 
+  // Products Export/Import
+  async exportProducts() {
+    const token = localStorage.getItem('adminToken');
+    const response = await fetch(`${API_BASE_URL}/api/admin/products/export`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+
+    // Get filename from Content-Disposition header
+    const contentDisposition = response.headers.get('Content-Disposition');
+    const filename = contentDisposition ? contentDisposition.split('filename=')[1].replace(/"/g, '') : 'products.xlsx';
+
+    // Download file
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+  async importProducts(file: File) {
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${API_BASE_URL}/api/admin/products/import`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({
+        detail: 'Import failed'
+      }));
+      throw new Error(error.detail || 'Import failed');
+    }
+    return response.json();
+  }
+
   // Collections
   getCollections() {
     return this.request('/api/admin/collections');
