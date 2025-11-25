@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
 import json
-
+from datetime import datetime
 from database import get_db, Product, FilterOption
 from schemas import ProductCreate, ProductUpdate
 from auth import require_admin
@@ -14,6 +14,63 @@ from auth import require_admin
 router = APIRouter()
 
 # Public endpoints
+
+@router.get("/api/products/feed")
+async def get_products_feed(db: Session = Depends(get_db)):
+    """
+    Public product feed - returns all products with full information in JSON format
+    Useful for integrations, marketplaces, and external systems
+    No authentication required
+    """
+    products = db.query(Product).filter(Product.in_stock == True).all()
+
+    feed_data = {
+        "meta": {
+            "total": len(products),
+            "generated_at": datetime.utcnow().isoformat(),
+            "currency": "RUB",
+            "brand": "Orient Watch"
+        },
+        "products": [
+            {
+                "id": product.id,
+                "name": product.name,
+                "collection": product.collection,
+                "price": product.price,
+                "currency": "RUB",
+                "image": product.image,
+                "images": json.loads(product.images) if product.images else [],
+                "description": product.description,
+                "features": json.loads(product.features) if product.features else [],
+                "specs": json.loads(product.specs) if product.specs else {},
+                "inStock": product.in_stock,
+                "stockQuantity": product.stock_quantity,
+                "sku": product.sku,
+                "isFeatured": product.is_featured,
+                "movement": product.movement,
+                "caseMaterial": product.case_material,
+                "dialColor": product.dial_color,
+                "waterResistance": product.water_resistance,
+                "seo": {
+                    "title": product.seo_title,
+                    "description": product.seo_description,
+                    "keywords": product.seo_keywords
+                },
+                "social": {
+                    "fbTitle": product.fb_title,
+                    "fbDescription": product.fb_description
+                },
+                "url": f"/product/{product.id}",
+                "createdAt": product.created_at.isoformat() if product.created_at else None,
+                "updatedAt": product.updated_at.isoformat() if product.updated_at else None
+            }
+            for product in products
+        ]
+    }
+
+    return feed_data
+
+
 @router.get("/api/products")
 async def get_products(
     page: int = Query(1, ge=1),
