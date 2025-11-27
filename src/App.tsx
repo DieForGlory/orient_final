@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ScrollToTop } from './components/ScrollToTop';
+import { GoogleTagManager } from './components/GoogleTagManager';
 import { Home } from './pages/Home';
 import { Catalog } from './pages/Catalog';
 import { ProductDetail } from './pages/ProductDetail';
@@ -30,6 +31,7 @@ import { CartProvider } from './contexts/CartContext';
 export function App() {
   return <CartProvider>
       <BrowserRouter>
+        <GoogleTagManager />
         <ScrollToTop />
         <Routes>
           {/* Public Routes */}

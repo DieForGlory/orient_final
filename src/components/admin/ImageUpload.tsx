@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useId } from 'react';
 import { UploadIcon, XIcon, ImageIcon } from 'lucide-react';
 import { api } from '../../services/api';
 interface ImageUploadProps {
@@ -16,6 +16,7 @@ export function ImageUpload({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uniqueId = useId(); // Generate unique ID for each instance
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -58,8 +59,8 @@ export function ImageUpload({
             <XIcon className="w-4 h-4" strokeWidth={2} />
           </button>
         </div> : <div className="border-2 border-dashed border-black/20 hover:border-[#C8102E] transition-colors">
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" id="image-upload" disabled={uploading} />
-          <label htmlFor="image-upload" className="block p-12 text-center cursor-pointer">
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" id={`image-upload-${uniqueId}`} disabled={uploading} />
+          <label htmlFor={`image-upload-${uniqueId}`} className="block p-12 text-center cursor-pointer">
             {uploading ? <div className="space-y-4">
                 <div className="w-12 h-12 mx-auto border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
                 <p className="text-sm text-black/60">Загрузка...</p>
