@@ -107,5 +107,16 @@ class PublicApiService {
   getHeritageSection() {
     return this.request('/api/content/heritage');
   }
+
+  // Settings
+  getCurrency() {
+    return this.request('/api/settings/currency');
+  }
+  getSiteInfo() {
+    return this.request('/api/settings/site');
+  }
+  getSocialLinks() {
+    return this.request('/api/settings/social');
+  }
 }
 export const publicApi = new PublicApiService();

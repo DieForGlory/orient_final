@@ -3,6 +3,7 @@ import { ShoppingBagIcon, ShareIcon, CheckCircleIcon, TruckIcon, ShieldCheckIcon
 import { Link, useParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useCart } from '../contexts/CartContext';
+import { useSettings } from '../contexts/SettingsContext';
 interface Product {
   id: string;
   name: string;
@@ -30,6 +31,9 @@ export function ProductDetail() {
   const {
     addItem
   } = useCart();
+  const {
+    formatPrice
+  } = useSettings();
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -58,13 +62,10 @@ export function ProductDetail() {
       fetchProduct(id);
     }
   }, [id]);
-  // Update SEO meta tags when product loads
   useEffect(() => {
     if (!product) return;
-    // Update document title
     const title = product.seoTitle || `${product.name} | Orient Watch`;
     document.title = title;
-    // Update or create meta tags
     const updateMetaTag = (name: string, content: string, property?: string) => {
       if (!content) return;
       const selector = property ? `meta[property="${property}"]` : `meta[name="${name}"]`;
@@ -80,26 +81,21 @@ export function ProductDetail() {
       }
       meta.setAttribute('content', content);
     };
-    // SEO meta tags
     updateMetaTag('description', product.seoDescription || product.description);
     updateMetaTag('keywords', product.seoKeywords || `${product.collection}, Orient, часы`);
-    // Open Graph / Facebook meta tags
     updateMetaTag('og:title', product.fbTitle || product.seoTitle || product.name, 'og:title');
     updateMetaTag('og:description', product.fbDescription || product.seoDescription || product.description, 'og:description');
     updateMetaTag('og:image', product.image, 'og:image');
     updateMetaTag('og:type', 'product', 'og:type');
     updateMetaTag('og:url', window.location.href, 'og:url');
-    // Twitter Card meta tags
     updateMetaTag('twitter:card', 'summary_large_image', 'twitter:card');
     updateMetaTag('twitter:title', product.fbTitle || product.seoTitle || product.name, 'twitter:title');
     updateMetaTag('twitter:description', product.fbDescription || product.seoDescription || product.description, 'twitter:description');
     updateMetaTag('twitter:image', product.image, 'twitter:image');
-    // Product-specific meta tags
     updateMetaTag('product:price:amount', product.price.toString(), 'product:price:amount');
     updateMetaTag('product:price:currency', 'RUB', 'product:price:currency');
     updateMetaTag('product:availability', product.inStock ? 'in stock' : 'out of stock', 'product:availability');
     updateMetaTag('product:brand', 'Orient', 'product:brand');
-    // Cleanup function to reset title on unmount
     return () => {
       document.title = 'Orient Watch';
     };
@@ -309,14 +305,9 @@ export function ProductDetail() {
             </div>
 
             <div className="py-4 sm:py-6 border-y border-black/10">
-              <div className="flex items-baseline space-x-2 sm:space-x-3">
-                <p className="text-3xl sm:text-4xl font-bold tracking-tight text-black">
-                  {product.price.toLocaleString('ru-RU')}
-                </p>
-                <span className="text-lg sm:text-xl font-medium text-black/60">
-                  ₽
-                </span>
-              </div>
+              <p className="text-3xl sm:text-4xl font-bold tracking-tight text-black">
+                {formatPrice(product.price)}
+              </p>
             </div>
 
             <p className="text-sm sm:text-base font-normal text-black/70 leading-relaxed">

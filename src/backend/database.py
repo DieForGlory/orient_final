@@ -7,9 +7,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 import json
-import os
+
 # Database URL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./orient.db")
+DATABASE_URL = "sqlite:///./orient.db"
 
 # Create engine
 engine = create_engine(
@@ -43,33 +43,6 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     orders = relationship("Order", back_populates="user")
-
-
-class Settings(Base):
-    __tablename__ = "settings"
-
-    id = Column(Integer, primary_key=True, default=1)
-    # Site info
-    site_name = Column(String, default="Orient Watch")
-    site_email = Column(String, default="info@orient.uz")
-    site_phone = Column(String, default="+998 71 123 45 67")
-    site_address = Column(String, default="Ташкент, Узбекистан")
-
-    # Shipping
-    free_shipping_threshold = Column(Float, default=100000)
-    standard_shipping_cost = Column(Float, default=50000)
-    express_shipping_cost = Column(Float, default=100000)
-
-    # Currency
-    currency_code = Column(String, default="UZS")
-    currency_symbol = Column(String, default="₽")
-
-    # Social media
-    facebook_url = Column(String, nullable=True)
-    instagram_url = Column(String, nullable=True)
-    twitter_url = Column(String, nullable=True)
-
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class Product(Base):
     __tablename__ = "products"
@@ -234,6 +207,32 @@ class ContentHeritage(Base):
     cta_text = Column(String, nullable=False)
     cta_link = Column(String, nullable=False)
     years_text = Column(String, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Settings(Base):
+    __tablename__ = "settings"
+    
+    id = Column(Integer, primary_key=True, default=1)
+    # Site info
+    site_name = Column(String, default="Orient Watch")
+    site_email = Column(String, default="info@orient.uz")
+    site_phone = Column(String, default="+998 71 123 45 67")
+    site_address = Column(String, default="Ташкент, Узбекистан")
+    
+    # Shipping
+    free_shipping_threshold = Column(Float, default=100000)
+    standard_shipping_cost = Column(Float, default=50000)
+    express_shipping_cost = Column(Float, default=100000)
+    
+    # Currency
+    currency_code = Column(String, default="UZS")
+    currency_symbol = Column(String, default="₽")
+    
+    # Social media
+    facebook_url = Column(String, nullable=True)
+    instagram_url = Column(String, nullable=True)
+    twitter_url = Column(String, nullable=True)
+    
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Create all tables

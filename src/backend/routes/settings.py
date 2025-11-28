@@ -113,7 +113,7 @@ async def update_settings(
     
     return {"message": "Settings updated successfully"}
 
-# Public endpoint for currency
+# Public endpoints
 @router.get("/api/settings/currency")
 async def get_currency(db: Session = Depends(get_db)):
     """Get currency settings (public)"""
@@ -128,4 +128,42 @@ async def get_currency(db: Session = Depends(get_db)):
     return {
         "code": settings.currency_code,
         "symbol": settings.currency_symbol
+    }
+
+@router.get("/api/settings/site")
+async def get_site_info(db: Session = Depends(get_db)):
+    """Get site information (public)"""
+    settings = db.query(Settings).filter(Settings.id == 1).first()
+    
+    if not settings:
+        return {
+            "name": "Orient Watch",
+            "email": "info@orient.uz",
+            "phone": "+998 71 123 45 67",
+            "address": "Ташкент, Узбекистан"
+        }
+    
+    return {
+        "name": settings.site_name,
+        "email": settings.site_email,
+        "phone": settings.site_phone,
+        "address": settings.site_address
+    }
+
+@router.get("/api/settings/social")
+async def get_social_links(db: Session = Depends(get_db)):
+    """Get social media links (public)"""
+    settings = db.query(Settings).filter(Settings.id == 1).first()
+    
+    if not settings:
+        return {
+            "facebook": "https://facebook.com/orient",
+            "instagram": "https://instagram.com/orient",
+            "twitter": "https://twitter.com/orient"
+        }
+    
+    return {
+        "facebook": settings.facebook_url or "",
+        "instagram": settings.instagram_url or "",
+        "twitter": settings.twitter_url or ""
     }

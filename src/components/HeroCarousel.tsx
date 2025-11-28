@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSettings } from '../contexts/SettingsContext';
 interface Product {
   id: string;
   name: string;
@@ -15,6 +16,9 @@ interface HeroCarouselProps {
 export function HeroCarousel({
   products
 }: HeroCarouselProps) {
+  const {
+    formatPrice
+  } = useSettings();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -90,7 +94,7 @@ export function HeroCarousel({
                   {product.name}
                 </h3>
                 <p className="text-lg sm:text-xl font-semibold tracking-wide transition-all duration-500 group-hover/card:text-[#C8102E] text-black">
-                  {product.price.toLocaleString('ru-RU')} ₽
+                  {formatPrice(product.price)}
                 </p>
               </div>
             </Link>

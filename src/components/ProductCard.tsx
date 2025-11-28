@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBagIcon } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 interface ProductCardProps {
   id: string;
   name: string;
@@ -17,6 +18,9 @@ export function ProductCard({
   image,
   index = 0
 }: ProductCardProps) {
+  const {
+    formatPrice
+  } = useSettings();
   const staggerClass = `animate-stagger-${Math.min(index % 4 + 1, 4)}`;
   return <div className={`group ${staggerClass}`}>
       <Link to={`/product/${id}`} className="block">
@@ -55,14 +59,9 @@ export function ProductCard({
           </h3>
 
           {/* Price */}
-          <div className="flex items-baseline space-x-1 sm:space-x-2">
-            <p className="text-lg sm:text-2xl font-bold tracking-tight text-black">
-              {price.toLocaleString('ru-RU')}
-            </p>
-            <span className="text-xs sm:text-sm font-medium text-black/60">
-              ₽
-            </span>
-          </div>
+          <p className="text-lg sm:text-2xl font-bold tracking-tight text-black">
+            {formatPrice(price)}
+          </p>
         </div>
       </Link>
     </div>;

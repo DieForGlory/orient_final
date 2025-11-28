@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 
 from database import init_db
-from routes import admin, products, collections, orders, content, upload, bookings, products_export, settings
+from routes import admin, products, collections, orders, content, upload, bookings, products_export, settings, payme
 
 # Load environment variables
 load_dotenv()
@@ -46,15 +46,15 @@ app.add_middleware(
 
 # Include routers BEFORE mounting static files
 app.include_router(admin.router)
-app.include_router(products_export.router)
 app.include_router(products.router)
-
+app.include_router(products_export.router)
 app.include_router(collections.router)
 app.include_router(orders.router)
 app.include_router(content.router)
 app.include_router(upload.router)
 app.include_router(bookings.router)
 app.include_router(settings.router)
+app.include_router(payme.router)
 
 # Mount uploads directory AFTER routes
 upload_dir = os.getenv("UPLOAD_DIR", "uploads")
@@ -85,4 +85,5 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     print(f"🚀 Starting server on http://0.0.0.0:{port}")
     print(f"📚 API docs: http://localhost:{port}/docs")
+    print(f"💳 Payme integration: enabled")
     uvicorn.run(app, host="0.0.0.0", port=port)

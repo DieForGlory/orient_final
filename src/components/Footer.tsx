@@ -1,7 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FacebookIcon, InstagramIcon, TwitterIcon, YoutubeIcon } from 'lucide-react';
+import { FacebookIcon, InstagramIcon, TwitterIcon } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 export function Footer() {
+  const {
+    site,
+    social
+  } = useSettings();
   return <footer className="bg-black text-white">
       {/* Desktop Footer */}
       <div className="hidden md:block">
@@ -10,7 +15,7 @@ export function Footer() {
             {/* Brand */}
             <div>
               <h3 className="text-2xl font-bold tracking-widest mb-6">
-                ORIENT
+                {site.name.toUpperCase()}
               </h3>
               <p className="text-gray-400 text-sm leading-relaxed">
                 Японское качество и мастерство с 1950 года. Создаем часы,
@@ -60,12 +65,12 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <Link to="/warranty" className="text-gray-400 hover:text-white transition-colors text-sm">
                     Гарантия
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <a href={`mailto:${site.email}`} className="text-gray-400 hover:text-white transition-colors text-sm">
                     Контакты
                   </a>
                 </li>
@@ -77,22 +82,22 @@ export function Footer() {
               <h4 className="text-sm tracking-widest mb-6">ПОДДЕРЖКА</h4>
               <ul className="space-y-3">
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-                    Доставка и возврат
-                  </a>
+                  <Link to="/delivery_policy" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Доставка и оплата
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-                    Оплата
-                  </a>
+                  <Link to="/return_policy" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Возврат и обмен
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
-                    FAQ
-                  </a>
+                  <Link to="/warranty" className="text-gray-400 hover:text-white transition-colors text-sm">
+                    Гарантия
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+                  <a href={`mailto:${site.email}`} className="text-gray-400 hover:text-white transition-colors text-sm">
                     Связаться с нами
                   </a>
                 </li>
@@ -104,21 +109,18 @@ export function Footer() {
           <div className="mt-16 pt-8 border-t border-gray-800">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
               <div className="flex space-x-6">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Facebook">
-                  <FacebookIcon className="w-5 h-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Instagram">
-                  <InstagramIcon className="w-5 h-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Twitter">
-                  <TwitterIcon className="w-5 h-5" />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="YouTube">
-                  <YoutubeIcon className="w-5 h-5" />
-                </a>
+                {social.facebook && <a href={social.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="Facebook">
+                    <FacebookIcon className="w-5 h-5" />
+                  </a>}
+                {social.instagram && <a href={social.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="Instagram">
+                    <InstagramIcon className="w-5 h-5" />
+                  </a>}
+                {social.twitter && <a href={social.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="Twitter">
+                    <TwitterIcon className="w-5 h-5" />
+                  </a>}
               </div>
               <p className="text-gray-400 text-sm">
-                © 2025 Orient Watch. Все права защищены.
+                © 2025 {site.name}. Все права защищены.
               </p>
             </div>
           </div>
@@ -130,7 +132,9 @@ export function Footer() {
         <div className="px-4 py-8">
           {/* Brand */}
           <div className="text-center mb-8">
-            <h3 className="text-xl font-bold tracking-[0.3em] mb-3">ORIENT</h3>
+            <h3 className="text-xl font-bold tracking-[0.3em] mb-3">
+              {site.name.toUpperCase()}
+            </h3>
             <p className="text-gray-400 text-xs leading-relaxed max-w-xs mx-auto">
               Японское качество с 1950 года
             </p>
@@ -147,30 +151,33 @@ export function Footer() {
             <Link to="/boutique" className="text-gray-400 hover:text-white transition-colors text-xs">
               Бутик
             </Link>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-xs">
-              Контакты
-            </a>
+            <Link to="/delivery_policy" className="text-gray-400 hover:text-white transition-colors text-xs">
+              Доставка
+            </Link>
+            <Link to="/return_policy" className="text-gray-400 hover:text-white transition-colors text-xs">
+              Возврат
+            </Link>
+            <Link to="/warranty" className="text-gray-400 hover:text-white transition-colors text-xs">
+              Гарантия
+            </Link>
           </div>
 
           {/* Social Icons */}
           <div className="flex justify-center space-x-6 mb-6">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Facebook">
-              <FacebookIcon className="w-5 h-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Instagram">
-              <InstagramIcon className="w-5 h-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="Twitter">
-              <TwitterIcon className="w-5 h-5" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors" aria-label="YouTube">
-              <YoutubeIcon className="w-5 h-5" />
-            </a>
+            {social.facebook && <a href={social.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="Facebook">
+                <FacebookIcon className="w-5 h-5" />
+              </a>}
+            {social.instagram && <a href={social.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="Instagram">
+                <InstagramIcon className="w-5 h-5" />
+              </a>}
+            {social.twitter && <a href={social.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" aria-label="Twitter">
+                <TwitterIcon className="w-5 h-5" />
+              </a>}
           </div>
 
           {/* Copyright */}
           <p className="text-gray-400 text-[10px] text-center">
-            © 2025 Orient Watch
+            © 2025 {site.name}
           </p>
         </div>
       </div>

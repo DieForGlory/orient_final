@@ -3,6 +3,8 @@ import { MinusIcon, PlusIcon, TrashIcon, ArrowRightIcon, CheckCircleIcon, TruckI
 import { Link, useNavigate } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useCart } from '../contexts/CartContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { PaymeButton } from '../components/PaymeButton';
 interface FormData {
   // Contact
   fullName: string;
@@ -20,14 +22,18 @@ interface FormData {
 export function Cart() {
   const navigate = useNavigate();
   const {
+    formatPrice
+  } = useSettings();
+  const {
     items: cartItems,
     updateQuantity,
     removeItem,
     clearCart,
     totalPrice
   } = useCart();
-  const [currentStep, setCurrentStep] = useState<'cart' | 'checkout'>('cart');
+  const [currentStep, setCurrentStep] = useState<'cart' | 'checkout' | 'payment'>('cart');
   const [submitting, setSubmitting] = useState(false);
+  const [orderNumber, setOrderNumber] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
@@ -47,13 +53,13 @@ export function Cart() {
   const availablePaymentMethods = [{
     value: 'payme',
     label: 'Payme',
-    desc: 'Оплата через Payme'
+    desc: 'Оплата через Payme (UzCard, Humo, Visa, Mastercard)'
   }, {
     value: 'click',
     label: 'Click',
     desc: 'Оплата через Click'
   },
-  // Cash only available for pickup (not for delivery)
+  // Cash only available for pickup
   ...(formData.deliveryMethod === 'pickup' ? [{
     value: 'cash',
     label: 'Наличными',
@@ -104,12 +110,18 @@ export function Cart() {
         total
       };
       const response = await publicApi.createOrder(orderData);
-      // Очистить корзину через CartContext
+      // Сохранить номер заказа
+      setOrderNumber(response.orderNumber);
+      // Очистить корзину
       clearCart();
-      // Показать успешное сообщение
-      alert(`✅ Заказ #${response.orderNumber} успешно создан!\n\nМы свяжемся с вами в ближайшее время.`);
-      // Перенаправить на главную
-      navigate('/');
+      // Если оплата через Payme - показать кнопку оплаты
+      if (formData.paymentMethod === 'payme') {
+        setCurrentStep('payment');
+      } else {
+        // Для других методов оплаты - показать успешное сообщение
+        alert(`✅ Заказ #${response.orderNumber} успешно создан!\n\nМы свяжемся с вами в ближайшее время.`);
+        navigate('/');
+      }
     } catch (error) {
       console.error('Error creating order:', error);
       alert('❌ Ошибка при создании заказа. Пожалуйста, попробуйте снова или свяжитесь с нами.');
@@ -136,7 +148,16 @@ export function Cart() {
       }));
     }
   };
-  if (cartItems.length === 0) {
+  const handlePaymentSuccess = () => {
+    // Redirect происходит автоматически на Payme
+    console.log('Payment initiated successfully');
+  };
+  const handlePaymentError = (error: string) => {
+    alert(`❌ Ошибка оплаты: ${error}`);
+    // Можно вернуть на шаг оформления
+    setCurrentStep('checkout');
+  };
+  if (cartItems.length === 0 && currentStep !== 'payment') {
     return <div className="w-full bg-white min-h-screen">
         <div className="max-w-7xl mx-auto px-8 lg:px-16 py-32">
           <div className="text-center space-y-8">
@@ -166,42 +187,95 @@ export function Cart() {
           <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
             <div className="w-8 sm:w-12 h-0.5 bg-[#C8102E]"></div>
             <p className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.25em] text-[#C8102E] font-medium uppercase">
-              Оформление заказа
+              {currentStep === 'payment' ? 'Оплата заказа' : 'Оформление заказа'}
             </p>
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-            {currentStep === 'cart' ? 'КОРЗИНА' : 'ОФОРМЛЕНИЕ'}
+            {currentStep === 'cart' ? 'КОРЗИНА' : currentStep === 'checkout' ? 'ОФОРМЛЕНИЕ' : 'ОПЛАТА'}
           </h1>
         </div>
       </div>
 
       {/* Progress Steps */}
-      <div className="border-b border-black/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-6 sm:py-8">
-          <div className="flex items-center justify-center space-x-3 sm:space-x-4">
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm ${currentStep === 'cart' ? 'bg-[#C8102E] text-white' : 'bg-green-600 text-white'}`}>
-                {currentStep === 'checkout' ? <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} /> : '1'}
+      {currentStep !== 'payment' && <div className="border-b border-black/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-6 sm:py-8">
+            <div className="flex items-center justify-center space-x-3 sm:space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm ${currentStep === 'cart' ? 'bg-[#C8102E] text-white' : 'bg-green-600 text-white'}`}>
+                  {currentStep === 'checkout' ? <CheckCircleIcon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} /> : '1'}
+                </div>
+                <span className="text-xs sm:text-sm font-medium uppercase tracking-wider">
+                  Корзина
+                </span>
               </div>
-              <span className="text-xs sm:text-sm font-medium uppercase tracking-wider">
-                Корзина
-              </span>
-            </div>
-            <div className="w-12 sm:w-16 h-px bg-black/20"></div>
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm ${currentStep === 'checkout' ? 'bg-[#C8102E] text-white' : 'bg-black/10 text-black/40'}`}>
-                2
+              <div className="w-12 sm:w-16 h-px bg-black/20"></div>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm ${currentStep === 'checkout' ? 'bg-[#C8102E] text-white' : 'bg-black/10 text-black/40'}`}>
+                  2
+                </div>
+                <span className={`text-xs sm:text-sm font-medium uppercase tracking-wider ${currentStep === 'checkout' ? 'text-black' : 'text-black/40'}`}>
+                  Оформление
+                </span>
               </div>
-              <span className={`text-xs sm:text-sm font-medium uppercase tracking-wider ${currentStep === 'checkout' ? 'text-black' : 'text-black/40'}`}>
-                Оформление
-              </span>
             </div>
           </div>
-        </div>
-      </div>
+        </div>}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-8 sm:py-12 lg:py-16">
-        {currentStep === 'cart' ? <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-16">
+        {currentStep === 'payment' ?
+      // Payment Step - Payme
+      <div className="max-w-2xl mx-auto">
+            <div className="bg-white border-2 border-black/10 p-8 sm:p-12 space-y-8">
+              <div className="text-center space-y-4">
+                <div className="w-20 h-20 mx-auto bg-green-50 rounded-full flex items-center justify-center">
+                  <CheckCircleIcon className="w-10 h-10 text-green-600" strokeWidth={2} />
+                </div>
+                <h2 className="text-3xl font-bold tracking-tight">
+                  Заказ #{orderNumber} создан!
+                </h2>
+                <p className="text-black/60">
+                  Теперь вы можете оплатить заказ через Payme
+                </p>
+              </div>
+
+              <div className="border-t border-black/10 pt-6">
+                <div className="flex justify-between items-center mb-6">
+                  <span className="text-lg font-medium">Сумма к оплате:</span>
+                  <span className="text-3xl font-bold">
+                    {formatPrice(total)}
+                  </span>
+                </div>
+
+                <PaymeButton orderId={orderNumber} amount={total} onSuccess={handlePaymentSuccess} onError={handlePaymentError} />
+
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-black/60 mb-4">
+                    Вы будете перенаправлены на защищенную страницу оплаты Payme
+                  </p>
+                  <button onClick={() => navigate('/')} className="text-sm text-black/60 hover:text-[#C8102E] transition-colors underline">
+                    Оплатить позже
+                  </button>
+                </div>
+              </div>
+
+              <div className="border-t border-black/10 pt-6 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-black/60">
+                  Принимаем к оплате:
+                </p>
+                <div className="flex items-center space-x-4 text-xs text-black/50">
+                  <span>UzCard</span>
+                  <span>•</span>
+                  <span>Humo</span>
+                  <span>•</span>
+                  <span>Visa</span>
+                  <span>•</span>
+                  <span>Mastercard</span>
+                </div>
+              </div>
+            </div>
+          </div> : currentStep === 'cart' ?
+      // Cart Step
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-16">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               {cartItems.map(item => <div key={item.id} className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 border-2 border-black/10 hover:border-black/20 transition-colors">
@@ -237,11 +311,10 @@ export function Cart() {
                       <div className="flex items-center justify-between sm:justify-end sm:text-right gap-4">
                         <div>
                           <p className="text-xl sm:text-2xl font-bold">
-                            {(item.price * item.quantity).toLocaleString('ru-RU')}{' '}
-                            ₽
+                            {formatPrice(item.price * item.quantity)}
                           </p>
                           {item.quantity > 1 && <p className="text-xs sm:text-sm text-black/50">
-                              {item.price.toLocaleString('ru-RU')} ₽ за шт.
+                              {formatPrice(item.price)} за шт.
                             </p>}
                         </div>
                         <button onClick={() => removeItem(item.id)} className="p-2 sm:p-3 text-black/40 hover:text-[#C8102E] hover:bg-red-50 transition-all flex-shrink-0" aria-label="Удалить">
@@ -265,23 +338,23 @@ export function Cart() {
                       Товары ({cartItems.length})
                     </span>
                     <span className="font-semibold">
-                      {subtotal.toLocaleString('ru-RU')} ₽
+                      {formatPrice(subtotal)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-black/60">Доставка</span>
                     <span className="font-semibold">
-                      {deliveryCost === 0 ? 'Бесплатно' : `${deliveryCost} ₽`}
+                      {deliveryCost === 0 ? 'Бесплатно' : formatPrice(deliveryCost)}
                     </span>
                   </div>
                   {deliveryCost > 0 && subtotal < 50000 && <p className="text-xs text-black/50">
-                      Бесплатная доставка при заказе от 50 000 ₽
+                      Бесплатная доставка при заказе от {formatPrice(50000)}
                     </p>}
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className="text-lg sm:text-xl font-bold">Всего</span>
                   <span className="text-2xl sm:text-3xl font-bold">
-                    {total.toLocaleString('ru-RU')} ₽
+                    {formatPrice(total)}
                   </span>
                 </div>
                 <button onClick={() => setCurrentStep('checkout')} className="w-full bg-[#C8102E] hover:bg-[#A00D24] text-white py-4 sm:py-5 text-sm tracking-[0.2em] font-semibold transition-all duration-500 uppercase">
@@ -292,7 +365,9 @@ export function Cart() {
                 </Link>
               </div>
             </div>
-          </div> : <form onSubmit={handleSubmit}>
+          </div> :
+      // Checkout Step
+      <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
               {/* Contact Information */}
               <div className="lg:col-span-2 space-y-12">
@@ -370,7 +445,7 @@ export function Cart() {
                           {method.time}
                         </p>
                         <p className="text-lg font-bold">
-                          {method.cost === 0 ? 'Бесплатно' : `${method.cost} ₽`}
+                          {method.cost === 0 ? 'Бесплатно' : formatPrice(method.cost)}
                         </p>
                       </button>)}
                   </div>
@@ -463,8 +538,7 @@ export function Cart() {
                             × {item.quantity}
                           </p>
                           <p className="text-sm font-bold mt-1">
-                            {(item.price * item.quantity).toLocaleString('ru-RU')}{' '}
-                            ₽
+                            {formatPrice(item.price * item.quantity)}
                           </p>
                         </div>
                       </div>)}
@@ -473,13 +547,13 @@ export function Cart() {
                     <div className="flex justify-between text-sm">
                       <span className="text-black/60">Товары</span>
                       <span className="font-semibold">
-                        {subtotal.toLocaleString('ru-RU')} ₽
+                        {formatPrice(subtotal)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-black/60">Доставка</span>
                       <span className="font-semibold">
-                        {deliveryCost === 0 ? 'Бесплатно' : `${deliveryCost} ₽`}
+                        {deliveryCost === 0 ? 'Бесплатно' : formatPrice(deliveryCost)}
                       </span>
                     </div>
                   </div>
@@ -487,11 +561,11 @@ export function Cart() {
                     <div className="flex justify-between items-baseline mb-6">
                       <span className="text-lg font-bold">Итого</span>
                       <span className="text-3xl font-bold">
-                        {total.toLocaleString('ru-RU')} ₽
+                        {formatPrice(total)}
                       </span>
                     </div>
                     <button type="submit" disabled={submitting} className="w-full bg-[#C8102E] hover:bg-[#A00D24] text-white py-5 text-sm tracking-[0.2em] font-semibold transition-all duration-500 uppercase mb-4 disabled:opacity-50 disabled:cursor-not-allowed">
-                      {submitting ? 'Оформление...' : 'Оформить заказ'}
+                      {submitting ? 'Оформление...' : 'Подтвердить заказ'}
                     </button>
                     <button type="button" onClick={() => setCurrentStep('cart')} disabled={submitting} className="w-full border-2 border-black hover:bg-black hover:text-white py-4 text-sm tracking-[0.2em] font-semibold transition-all duration-500 uppercase disabled:opacity-50">
                       Назад в корзину

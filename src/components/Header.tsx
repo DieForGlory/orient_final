@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SearchIcon, ShoppingBagIcon, MenuIcon, XIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { publicApi } from '../services/publicApi';
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -14,6 +15,9 @@ export function Header() {
   const {
     totalItems
   } = useCart();
+  const {
+    formatPrice
+  } = useSettings();
   useEffect(() => {
     loadLogo();
   }, []);
@@ -180,7 +184,7 @@ export function Header() {
                             {watch.name}
                           </h3>
                           <p className="text-lg font-bold text-black">
-                            {watch.price.toLocaleString('ru-RU')} ₽
+                            {formatPrice(watch.price)}
                           </p>
                         </div>
                       </Link>)}

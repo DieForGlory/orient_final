@@ -15,6 +15,21 @@ from auth import require_admin
 
 router = APIRouter()
 
+# Define spec fields for export/import
+SPEC_FIELDS = [
+    "Диаметр корпуса",
+    "Материал корпуса",
+    "Стекло",
+    "Водонепроницаемость корпуса",
+    "Механизм",
+    "Калибр",
+    "Запас хода",
+    "Материал браслета/ремешка",
+    "Застёжка",
+    "Страна - производитель",
+    "Гендер"
+]
+
 @router.get("/api/admin/products/export")
 async def export_products(
     db: Session = Depends(get_db),
@@ -30,14 +45,17 @@ async def export_products(
     ws = wb.active
     ws.title = "Products"
     
-    # Define headers
+    # Define headers - basic fields + individual spec fields
     headers = [
         "id", "name", "collection", "price", "image", "images",
-        "description", "features", "specs", "in_stock", "stock_quantity",
+        "description", "features", "in_stock", "stock_quantity",
         "sku", "is_featured", "movement", "case_material", "dial_color",
         "water_resistance", "seo_title", "seo_description", "seo_keywords",
         "fb_title", "fb_description", "created_at", "updated_at"
     ]
+    
+    # Add spec fields as separate columns
+    headers.extend(SPEC_FIELDS)
     
     # Style headers
     header_fill = PatternFill(start_color="C8102E", end_color="C8102E", fill_type="solid")
@@ -53,6 +71,13 @@ async def export_products(
     
     # Write data
     for row_num, product in enumerate(products, 2):
+        # Parse specs JSON
+        try:
+            specs = json.loads(product.specs) if product.specs else {}
+        except:
+            specs = {}
+        
+        # Basic fields
         ws.cell(row=row_num, column=1).value = product.id
         ws.cell(row=row_num, column=2).value = product.name
         ws.cell(row=row_num, column=3).value = product.collection
@@ -61,22 +86,26 @@ async def export_products(
         ws.cell(row=row_num, column=6).value = product.images  # JSON string
         ws.cell(row=row_num, column=7).value = product.description
         ws.cell(row=row_num, column=8).value = product.features  # JSON string
-        ws.cell(row=row_num, column=9).value = product.specs  # JSON string
-        ws.cell(row=row_num, column=10).value = product.in_stock
-        ws.cell(row=row_num, column=11).value = product.stock_quantity
-        ws.cell(row=row_num, column=12).value = product.sku
-        ws.cell(row=row_num, column=13).value = product.is_featured
-        ws.cell(row=row_num, column=14).value = product.movement
-        ws.cell(row=row_num, column=15).value = product.case_material
-        ws.cell(row=row_num, column=16).value = product.dial_color
-        ws.cell(row=row_num, column=17).value = product.water_resistance
-        ws.cell(row=row_num, column=18).value = product.seo_title
-        ws.cell(row=row_num, column=19).value = product.seo_description
-        ws.cell(row=row_num, column=20).value = product.seo_keywords
-        ws.cell(row=row_num, column=21).value = product.fb_title
-        ws.cell(row=row_num, column=22).value = product.fb_description
-        ws.cell(row=row_num, column=23).value = product.created_at.isoformat() if product.created_at else ""
-        ws.cell(row=row_num, column=24).value = product.updated_at.isoformat() if product.updated_at else ""
+        ws.cell(row=row_num, column=9).value = product.in_stock
+        ws.cell(row=row_num, column=10).value = product.stock_quantity
+        ws.cell(row=row_num, column=11).value = product.sku
+        ws.cell(row=row_num, column=12).value = product.is_featured
+        ws.cell(row=row_num, column=13).value = product.movement
+        ws.cell(row=row_num, column=14).value = product.case_material
+        ws.cell(row=row_num, column=15).value = product.dial_color
+        ws.cell(row=row_num, column=16).value = product.water_resistance
+        ws.cell(row=row_num, column=17).value = product.seo_title
+        ws.cell(row=row_num, column=18).value = product.seo_description
+        ws.cell(row=row_num, column=19).value = product.seo_keywords
+        ws.cell(row=row_num, column=20).value = product.fb_title
+        ws.cell(row=row_num, column=21).value = product.fb_description
+        ws.cell(row=row_num, column=22).value = product.created_at.isoformat() if product.created_at else ""
+        ws.cell(row=row_num, column=23).value = product.updated_at.isoformat() if product.updated_at else ""
+        
+        # Individual spec fields
+        for col_offset, spec_field in enumerate(SPEC_FIELDS):
+            col_num = 24 + col_offset  # Start after basic fields
+            ws.cell(row=row_num, column=col_num).value = specs.get(spec_field, "")
     
     # Auto-adjust column widths
     for column in ws.columns:
@@ -156,6 +185,12 @@ async def import_products(
                 if not existing_product and row_data.get("id"):
                     existing_product = db.query(Product).filter(Product.id == row_data["id"]).first()
                 
+                # Build specs dict from individual columns
+                specs = {}
+                for spec_field in SPEC_FIELDS:
+                    if spec_field in row_data and row_data[spec_field]:
+                        specs[spec_field] = str(row_data[spec_field])
+                
                 # Prepare data
                 product_data = {
                     "name": row_data["name"],
@@ -165,7 +200,7 @@ async def import_products(
                     "images": row_data.get("images"),  # Keep as string
                     "description": row_data.get("description"),
                     "features": row_data.get("features"),  # Keep as string
-                    "specs": row_data.get("specs"),  # Keep as string
+                    "specs": json.dumps(specs, ensure_ascii=False),  # Convert dict to JSON
                     "in_stock": bool(row_data.get("in_stock", True)),
                     "stock_quantity": int(row_data.get("stock_quantity", 0)) if row_data.get("stock_quantity") else 0,
                     "sku": row_data.get("sku"),
