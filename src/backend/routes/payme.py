@@ -56,6 +56,7 @@ async def init_payme_payment(
     
     # Encode params to base64
     params_str = ";".join([f"{k}={v}" for k, v in params.items()])
+    print(f"PAYME DEBUG: {params_str}")  # <--- Выведет чистые параметры в лог
     params_base64 = base64.b64encode(params_str.encode()).decode()
     
     # Create checkout URL
