@@ -10,7 +10,7 @@ import hashlib
 import base64
 import time
 import json
-import sys
+
 from database import get_db, Order
 from auth import require_admin
 
@@ -51,13 +51,12 @@ async def init_payme_payment(
         "m": PAYME_MERCHANT_ID,
         "ac.order_id": data.order_id,
         "a": amount_tiyin,
-	"c": f"https://orientwatch.uz/order/{data.order_id}"
+        "c": f"https://orient.uz/order/{data.order_id}"  # Return URL
     }
     
     # Encode params to base64
     params_str = ";".join([f"{k}={v}" for k, v in params.items()])
-    print(f"PAYME DEBUG: {params_str}")
-    sys.stdout.flush()
+    print(f"PAYME DEBUG: {params_str}")  # <--- Выведет чистые параметры в лог
     params_base64 = base64.b64encode(params_str.encode()).decode()
     
     # Create checkout URL
