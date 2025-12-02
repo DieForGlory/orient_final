@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { PlusIcon, SearchIcon, EditIcon, TrashIcon, EyeIcon, DownloadIcon, UploadIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -11,18 +11,24 @@ interface Product {
   image: string;
   inStock: boolean;
   createdAt: string;
+  sku: string;
 }
 
 export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Состояния для фильтров и пагинации
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCollection, setFilterCollection] = useState('all');
+  // Используем URL параметры для хранения состояния
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const currentPage = Number(searchParams.get('page')) || 1;
+  const filterCollection = searchParams.get('collection') || 'all';
+  const urlSearchQuery = searchParams.get('search') || '';
+
+  const [localSearch, setLocalSearch] = useState(urlSearchQuery);
+
   const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20, // Показывать по 20 товаров на странице
+    limit: 20,
     total: 0,
     totalPages: 1
   });
@@ -31,30 +37,39 @@ export function AdminProducts() {
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Используем debounce для поиска, чтобы не дёргать API на каждую букву
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchProducts();
-    }, 300);
+      if (localSearch !== urlSearchQuery) {
+        setSearchParams(prev => {
+          const newParams = new URLSearchParams(prev);
+          if (localSearch) newParams.set('search', localSearch);
+          else newParams.delete('search');
+          newParams.set('page', '1');
+          return newParams;
+        });
+      }
+    }, 500);
     return () => clearTimeout(timer);
-  }, [pagination.page, searchQuery, filterCollection]);
+  }, [localSearch, setSearchParams, urlSearchQuery]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage, filterCollection, urlSearchQuery]);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      // Передаем параметры на сервер
       const params: any = {
-        page: pagination.page,
+        page: currentPage,
         limit: pagination.limit,
       };
 
-      if (searchQuery) params.search = searchQuery;
+      if (urlSearchQuery) params.search = urlSearchQuery;
       if (filterCollection !== 'all') params.collection = filterCollection;
 
       const response = await api.getProducts(params);
 
       setProducts(response.data || []);
-      // Обновляем данные пагинации из ответа сервера
       if (response.pagination) {
         setPagination(prev => ({
           ...prev,
@@ -71,16 +86,31 @@ export function AdminProducts() {
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
-      setPagination(prev => ({ ...prev, page: newPage }));
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.set('page', newPage.toString());
+        return newParams;
+      });
       window.scrollTo(0, 0);
     }
+  };
+
+  const handleCollectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCollection = e.target.value;
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (newCollection === 'all') newParams.delete('collection');
+      else newParams.set('collection', newCollection);
+      newParams.set('page', '1');
+      return newParams;
+    });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Вы уверены, что хотите удалить этот товар?')) return;
     try {
       await api.deleteProduct(id);
-      fetchProducts(); // Перезагружаем список после удаления
+      fetchProducts();
     } catch (error) {
       console.error('Error deleting product:', error);
       alert('Ошибка при удалении товара');
@@ -118,7 +148,7 @@ export function AdminProducts() {
       const result = await api.importProducts(file);
       const message = `✅ Импорт завершен!\n\n` + `Создано: ${result.created}\n` + `Обновлено: ${result.updated}\n` + (result.errors.length > 0 ? `\nОшибки:\n${result.errors.join('\n')}` : '');
       alert(message);
-      setPagination(prev => ({ ...prev, page: 1 })); // Сброс на 1 страницу
+      setSearchParams({});
       await fetchProducts();
     } catch (error: any) {
       console.error('Error importing products:', error);
@@ -138,7 +168,6 @@ export function AdminProducts() {
   }
 
   return <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
@@ -177,31 +206,22 @@ export function AdminProducts() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-white p-4 sm:p-6 border-2 border-black/10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-          {/* Search */}
           <div className="relative">
             <SearchIcon className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-black/40" strokeWidth={2} />
             <input
               type="text"
-              value={searchQuery}
-              onChange={e => {
-                setSearchQuery(e.target.value);
-                setPagination(prev => ({ ...prev, page: 1 })); // Сброс страницы при поиске
-              }}
-              placeholder="Поиск товаров..."
+              value={localSearch}
+              onChange={e => setLocalSearch(e.target.value)}
+              placeholder="Поиск по названию или SKU..."
               className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-black/20 focus:border-[#C8102E] focus:outline-none"
             />
           </div>
 
-          {/* Collection Filter */}
           <select
             value={filterCollection}
-            onChange={e => {
-              setFilterCollection(e.target.value);
-              setPagination(prev => ({ ...prev, page: 1 })); // Сброс страницы при фильтре
-            }}
+            onChange={handleCollectionChange}
             className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-black/20 focus:border-[#C8102E] focus:outline-none bg-white"
           >
             <option value="all">Все коллекции</option>
@@ -212,13 +232,13 @@ export function AdminProducts() {
         </div>
       </div>
 
-      {/* Products Table - Desktop */}
       <div className="hidden md:block bg-white border-2 border-black/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-black/10">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Товар</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">SKU</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Коллекция</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Цена</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Статус</th>
@@ -237,6 +257,7 @@ export function AdminProducts() {
                         </div>
                       </div>
                     </td>
+                    <td className="px-6 py-4 text-sm text-black/60">{product.sku}</td>
                     <td className="px-6 py-4"><span className="text-sm font-medium">{product.collection}</span></td>
                     <td className="px-6 py-4"><span className="text-sm font-semibold">{product.price.toLocaleString('ru-RU')} ₽</span></td>
                     <td className="px-6 py-4">
@@ -248,25 +269,33 @@ export function AdminProducts() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">
                         <Link to={`/product/${product.id}`} target="_blank" className="p-2 hover:bg-gray-100 transition-colors" title="Просмотр"><EyeIcon className="w-4 h-4" strokeWidth={2} /></Link>
-                        <Link to={`/admin/products/${product.id}/edit`} className="p-2 hover:bg-gray-100 transition-colors" title="Редактировать"><EditIcon className="w-4 h-4" strokeWidth={2} /></Link>
+                        {/* Здесь добавляем state для передачи текущих фильтров */}
+                        <Link
+                          to={`/admin/products/${product.id}/edit`}
+                          state={{ search: searchParams.toString() }}
+                          className="p-2 hover:bg-gray-100 transition-colors"
+                          title="Редактировать"
+                        >
+                          <EditIcon className="w-4 h-4" strokeWidth={2} />
+                        </Link>
                         <button onClick={() => handleDelete(product.id)} className="p-2 hover:bg-red-50 text-red-600 transition-colors" title="Удалить"><TrashIcon className="w-4 h-4" strokeWidth={2} /></button>
                       </div>
                     </td>
                   </tr>) : <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-black/40">Товары не найдены</td>
+                  <td colSpan={7} className="px-6 py-12 text-center text-black/40">Товары не найдены</td>
                 </tr>}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Products Cards - Mobile */}
       <div className="md:hidden space-y-4">
         {products.length > 0 ? products.map(product => <div key={product.id} className="bg-white border-2 border-black/10 p-4">
               <div className="flex gap-4 mb-4">
                 <img src={product.image} alt={product.name} className="w-20 h-20 object-cover bg-gray-100 flex-shrink-0" onError={e => { e.currentTarget.src = 'https://via.placeholder.com/80?text=No+Image'; }} />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-sm mb-1 truncate">{product.name}</h3>
+                  <p className="text-xs text-black/50 mb-1">SKU: {product.sku}</p>
                   <p className="text-xs text-black/50 mb-2">ID: {product.id}</p>
                   <span className={`inline-block px-2 py-1 text-xs font-semibold uppercase ${product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {product.inStock ? 'В наличии' : 'Нет'}
@@ -274,7 +303,11 @@ export function AdminProducts() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Link to={`/admin/products/${product.id}/edit`} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border-2 border-black/20 hover:bg-gray-50 transition-colors text-sm font-medium">
+                <Link
+                  to={`/admin/products/${product.id}/edit`}
+                  state={{ search: searchParams.toString() }}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 border-2 border-black/20 hover:bg-gray-50 transition-colors text-sm font-medium"
+                >
                   <EditIcon className="w-4 h-4" strokeWidth={2} />
                   <span>Изменить</span>
                 </Link>
@@ -285,35 +318,35 @@ export function AdminProducts() {
             </div>) : <div className="bg-white border-2 border-black/10 p-8 text-center text-black/40">Товары не найдены</div>}
       </div>
 
-      {/* Pagination Controls */}
       {products.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border-2 border-black/10">
           <p className="text-xs sm:text-sm text-black/60">
-            Страница {pagination.page} из {pagination.totalPages}
+            Страница {currentPage} из {pagination.totalPages}
           </p>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={pagination.page === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
               className="px-3 sm:px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all text-xs sm:text-sm font-medium uppercase tracking-wider disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black"
             >
               <ChevronLeftIcon className="w-4 h-4" />
             </button>
 
-            {/* Page Numbers */}
             <div className="hidden sm:flex gap-1">
                 {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     let pageNum = i + 1;
                     if (pagination.totalPages > 5) {
-                        if (pagination.page > 3) pageNum = pagination.page - 2 + i;
+                        if (currentPage > 3) pageNum = currentPage - 2 + i;
                         if (pageNum > pagination.totalPages) pageNum = pagination.totalPages - (4 - i);
                     }
+                    if (pageNum < 1) pageNum = 1;
+
                     return (
                         <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
                             className={`w-8 h-8 flex items-center justify-center text-xs font-bold border-2 ${
-                                pagination.page === pageNum
+                                currentPage === pageNum
                                     ? 'bg-black text-white border-black'
                                     : 'border-transparent hover:border-black'
                             }`}
@@ -325,8 +358,8 @@ export function AdminProducts() {
             </div>
 
             <button
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={pagination.page === pagination.totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === pagination.totalPages}
               className="px-3 sm:px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all text-xs sm:text-sm font-medium uppercase tracking-wider disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black"
             >
               <ChevronRightIcon className="w-4 h-4" />

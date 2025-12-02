@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheckIcon, ClockIcon, FileTextIcon } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+
 export function Warranty() {
+  const { site } = useSettings();
+
   return <div className="w-full bg-white">
       {/* Hero Section */}
       <section className="relative bg-black text-white py-16 sm:py-24">
@@ -152,7 +156,7 @@ export function Warranty() {
                   Обратитесь к нам
                 </h3>
                 <p className="text-black/70 leading-relaxed">
-                  Свяжитесь с нами по телефону +998 71 123 45 67 или приезжайте
+                  Свяжитесь с нами по телефону {site.phone} или приезжайте
                   в наш бутик. Опишите проблему и предоставьте гарантийный
                   талон.
                 </p>
@@ -307,12 +311,10 @@ export function Warranty() {
                   <li>• Сб: 10:00 - 16:00</li>
                   <li>• Вс: выходной</li>
                   <li className="pt-2">
-                    <strong className="text-black">Адрес:</strong> Ташкент, ул.
-                    Амира Темура
+                    <strong className="text-black">Адрес:</strong> {site.address}
                   </li>
                   <li>
-                    <strong className="text-black">Телефон:</strong> +998 71 123
-                    45 67
+                    <strong className="text-black">Телефон:</strong> {site.phone}
                   </li>
                 </ul>
               </div>
@@ -330,7 +332,7 @@ export function Warranty() {
             обслуживании часов Orient.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="tel:+998711234567" className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white text-sm font-semibold uppercase tracking-wider transition-all">
+            <a href={`tel:${site.phone.replace(/\s+/g, '')}`} className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white text-sm font-semibold uppercase tracking-wider transition-all">
               Позвонить нам
             </a>
             <Link to="/boutique" className="px-8 py-4 border-2 border-black hover:bg-black hover:text-white text-sm font-semibold uppercase tracking-wider transition-all">

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'; // Добавлен useLocation
 import { ArrowLeftIcon, PlusIcon, XIcon } from 'lucide-react';
 import { api } from '../../services/api';
 import { ImageUpload } from '../../components/admin/ImageUpload';
+
 interface ProductFormData {
   name: string;
   collection: string;
@@ -16,12 +17,14 @@ interface ProductFormData {
   stockQuantity: number;
   sku: string;
 }
+
 interface Collection {
   id: string;
   name: string;
   description: string;
   active: boolean;
 }
+
 const INITIAL_FORM_DATA: ProductFormData = {
   name: '',
   collection: '',
@@ -47,28 +50,34 @@ const INITIAL_FORM_DATA: ProductFormData = {
   stockQuantity: 0,
   sku: ''
 };
+
 export function ProductForm() {
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // Получаем объект location
   const isEdit = !!id;
+
+  // Формируем URL возврата с учетом сохраненных параметров поиска
+  const backUrl = `/admin/products${location.state?.search ? `?${location.state.search}` : ''}`;
+
   const [formData, setFormData] = useState<ProductFormData>(INITIAL_FORM_DATA);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
   useEffect(() => {
     loadCollections();
     if (isEdit) {
       loadProduct();
     }
   }, [id]);
+
   const loadCollections = async () => {
     try {
       const data = await api.getCollections();
       setCollections(data.filter((c: Collection) => c.active));
-      // Set default collection if creating new product
+
       if (!isEdit && data.length > 0) {
         setFormData(prev => ({
           ...prev,
@@ -79,6 +88,7 @@ export function ProductForm() {
       console.error('Error loading collections:', err);
     }
   };
+
   const loadProduct = async () => {
     setLoading(true);
     try {
@@ -94,40 +104,46 @@ export function ProductForm() {
       setLoading(false);
     }
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSaving(true);
+
     try {
-      // Filter empty features
       const cleanedData = {
         ...formData,
         features: formData.features.filter(f => f.trim() !== '')
       };
+
       if (isEdit) {
         await api.updateProduct(id!, cleanedData);
       } else {
         await api.createProduct(cleanedData);
       }
-      navigate('/admin/products');
+      // Возвращаемся на список товаров, сохраняя фильтры
+      navigate(backUrl);
     } catch (err: any) {
       setError(err.message || 'Ошибка сохранения товара');
     } finally {
       setSaving(false);
     }
   };
+
   const addFeature = () => {
     setFormData({
       ...formData,
       features: [...formData.features, '']
     });
   };
+
   const removeFeature = (index: number) => {
     setFormData({
       ...formData,
       features: formData.features.filter((_, i) => i !== index)
     });
   };
+
   const updateFeature = (index: number, value: string) => {
     const newFeatures = [...formData.features];
     newFeatures[index] = value;
@@ -136,28 +152,32 @@ export function ProductForm() {
       features: newFeatures
     });
   };
+
   const addImage = (url: string) => {
     setFormData({
       ...formData,
       images: [...formData.images, url]
     });
   };
+
   const removeImage = (index: number) => {
     setFormData({
       ...formData,
       images: formData.images.filter((_, i) => i !== index)
     });
   };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-[400px]">
         <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
       </div>;
   }
+
   return <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/admin/products" className="p-2 hover:bg-gray-100 transition-colors">
+          <Link to={backUrl} className="p-2 hover:bg-gray-100 transition-colors">
             <ArrowLeftIcon className="w-5 h-5" strokeWidth={2} />
           </Link>
           <div>
@@ -254,12 +274,18 @@ export function ProductForm() {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium tracking-wider uppercase mb-3">
-                Описание <span className="text-[#C8102E]">*</span>
+                Описание
               </label>
-              <textarea value={formData.description} onChange={e => setFormData({
-              ...formData,
-              description: e.target.value
-            })} rows={4} className="w-full px-4 py-3 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none resize-none" placeholder="Профессиональные дайверские часы..." required />
+              <textarea
+                value={formData.description}
+                onChange={e => setFormData({
+                  ...formData,
+                  description: e.target.value
+                })}
+                rows={4}
+                className="w-full px-4 py-3 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none resize-none"
+                placeholder="Профессиональные дайверские часы..."
+              />
             </div>
           </div>
         </div>
@@ -353,7 +379,7 @@ export function ProductForm() {
 
         {/* Actions */}
         <div className="flex items-center justify-end space-x-4">
-          <Link to="/admin/products" className="px-8 py-4 border-2 border-black hover:bg-gray-50 transition-all text-sm font-semibold uppercase tracking-wider">
+          <Link to={backUrl} className="px-8 py-4 border-2 border-black hover:bg-gray-50 transition-all text-sm font-semibold uppercase tracking-wider">
             Отмена
           </Link>
           <button type="submit" disabled={saving} className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white text-sm font-semibold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">

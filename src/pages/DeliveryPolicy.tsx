@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { TruckIcon, ClockIcon, MapPinIcon, PackageIcon } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+
 export function DeliveryPolicy() {
+  const { site } = useSettings();
+
   return <div className="w-full bg-white">
       {/* Hero Section */}
       <section className="relative bg-black text-white py-16 sm:py-24">
@@ -204,7 +208,7 @@ export function DeliveryPolicy() {
             все ваши вопросы о доставке и оплате.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="tel:+998711234567" className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white text-sm font-semibold uppercase tracking-wider transition-all">
+            <a href={`tel:${site.phone.replace(/\s+/g, '')}`} className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white text-sm font-semibold uppercase tracking-wider transition-all">
               Позвонить нам
             </a>
             <Link to="/boutique" className="px-8 py-4 border-2 border-black hover:bg-black hover:text-white text-sm font-semibold uppercase tracking-wider transition-all">

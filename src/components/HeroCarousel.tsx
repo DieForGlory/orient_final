@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
+
 interface Product {
   id: string;
   name: string;
@@ -10,9 +11,11 @@ interface Product {
   image: string;
   isNew?: boolean;
 }
+
 interface HeroCarouselProps {
   products: Product[];
 }
+
 export function HeroCarousel({
   products
 }: HeroCarouselProps) {
@@ -22,6 +25,7 @@ export function HeroCarousel({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+
   // Auto-play functionality - desktop only
   useEffect(() => {
     if (isHovered || window.innerWidth < 1024) return;
@@ -30,6 +34,7 @@ export function HeroCarousel({
     }, 5500);
     return () => clearInterval(interval);
   }, [isHovered, products.length]);
+
   // Smooth scroll to current index - desktop only
   useEffect(() => {
     if (window.innerWidth < 1024) return;
@@ -45,9 +50,11 @@ export function HeroCarousel({
       behavior: 'smooth'
     });
   }, [currentIndex]);
+
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
   };
+
   const navigate = (direction: 'left' | 'right') => {
     if (direction === 'right') {
       setCurrentIndex(prev => (prev + 1) % products.length);
@@ -55,6 +62,7 @@ export function HeroCarousel({
       setCurrentIndex(prev => (prev - 1 + products.length) % products.length);
     }
   };
+
   return <div className="relative group" onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       {/* Navigation Arrows - Desktop only */}
       <div className="hidden lg:block">
@@ -80,7 +88,12 @@ export function HeroCarousel({
                     NEW
                   </span>}
 
-                <img src={product.image} alt={product.name} className="w-full h-full object-contain p-6 sm:p-8 lg:p-12 lg:grayscale lg:group-hover/card:grayscale-0 transition-all duration-1000 group-hover/card:scale-105" draggable="false" />
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-contain p-6 sm:p-8 lg:p-12 transition-all duration-1000 group-hover/card:scale-105"
+                  draggable="false"
+                />
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/0 to-black/0 group-hover/card:from-black/5 group-hover/card:to-transparent transition-all duration-700"></div>
               </div>

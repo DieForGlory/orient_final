@@ -1,7 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { RotateCcwIcon, CheckCircleIcon, XCircleIcon, AlertCircleIcon } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
+
 export function ReturnPolicy() {
+  const { site } = useSettings();
+
   return <div className="w-full bg-white">
       {/* Hero Section */}
       <section className="relative bg-black text-white py-16 sm:py-24">
@@ -142,8 +146,8 @@ export function ReturnPolicy() {
                   Свяжитесь с нами
                 </h3>
                 <p className="text-black/70 leading-relaxed">
-                  Позвоните по телефону +998 71 123 45 67 или напишите на email
-                  info@orient.uz. Сообщите номер заказа и причину возврата.
+                  Позвоните по телефону {site.phone} или напишите на email{' '}
+                  {site.email}. Сообщите номер заказа и причину возврата.
                 </p>
               </div>
             </div>
@@ -274,10 +278,10 @@ export function ReturnPolicy() {
             Свяжитесь с нами любым удобным способом.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="tel:+998711234567" className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white text-sm font-semibold uppercase tracking-wider transition-all">
+            <a href={`tel:${site.phone.replace(/\s+/g, '')}`} className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white text-sm font-semibold uppercase tracking-wider transition-all">
               Позвонить нам
             </a>
-            <a href="mailto:info@orient.uz" className="px-8 py-4 border-2 border-black hover:bg-black hover:text-white text-sm font-semibold uppercase tracking-wider transition-all">
+            <a href={`mailto:${site.email}`} className="px-8 py-4 border-2 border-black hover:bg-black hover:text-white text-sm font-semibold uppercase tracking-wider transition-all">
               Написать Email
             </a>
           </div>

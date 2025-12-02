@@ -3,7 +3,7 @@ Products routes - CRUD operations
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_  # Добавили or_ для поиска по нескольким полям
 from typing import Optional
 import json
 from datetime import datetime
@@ -19,8 +19,6 @@ router = APIRouter()
 async def get_products_feed(db: Session = Depends(get_db)):
     """
     Public product feed - returns all products with full information in JSON format
-    Useful for integrations, marketplaces, and external systems
-    No authentication required
     """
     products = db.query(Product).filter(Product.in_stock == True).all()
 
@@ -87,42 +85,48 @@ async def get_products(
 ):
     """Get all products with filters and pagination (public)"""
     query = db.query(Product)
-    
+
     # Filters
     if search:
-        query = query.filter(Product.name.contains(search))
-    
+        # Ищем совпадение в имени ИЛИ в SKU
+        query = query.filter(
+            or_(
+                Product.name.contains(search),
+                Product.sku.contains(search)
+            )
+        )
+
     if collection:
         query = query.filter(Product.collection == collection)
-    
+
     if min_price is not None:
         query = query.filter(Product.price >= min_price)
-    
+
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
-    
+
     if movement:
         query = query.filter(Product.movement == movement)
-    
+
     if case_material:
         query = query.filter(Product.case_material == case_material)
-    
+
     if dial_color:
         query = query.filter(Product.dial_color == dial_color)
-    
+
     if water_resistance:
         query = query.filter(Product.water_resistance == water_resistance)
-    
+
     # Count total
     total = query.count()
-    
+
     # Pagination
     offset = (page - 1) * limit
     products = query.offset(offset).limit(limit).all()
-    
+
     # Convert to dict
     data = [product.to_dict() for product in products]
-    
+
     return {
         "data": data,
         "pagination": {
@@ -141,11 +145,11 @@ async def get_available_filters(db: Session = Depends(get_db)):
     materials = db.query(Product.case_material).filter(Product.case_material.isnot(None)).distinct().all()
     colors = db.query(Product.dial_color).filter(Product.dial_color.isnot(None)).distinct().all()
     water_res = db.query(Product.water_resistance).filter(Product.water_resistance.isnot(None)).distinct().all()
-    
+
     # Count products for each filter
     def count_products(field, value):
         return db.query(func.count(Product.id)).filter(field == value).scalar()
-    
+
     return {
         "movements": [
             {
@@ -185,10 +189,10 @@ async def get_available_filters(db: Session = Depends(get_db)):
 async def get_product(product_id: str, db: Session = Depends(get_db)):
     """Get product by ID (public)"""
     product = db.query(Product).filter(Product.id == product_id).first()
-    
+
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
     return product.to_dict()
 
 # Admin endpoints
@@ -203,10 +207,16 @@ async def get_all_products_admin(
 ):
     """Get all products with filters (admin)"""
     query = db.query(Product)
-    
+
     # Filters
     if search:
-        query = query.filter(Product.name.contains(search))
+        # И тут тоже добавляем поиск по SKU
+        query = query.filter(
+            or_(
+                Product.name.contains(search),
+                Product.sku.contains(search)
+            )
+        )
     
     if collection:
         query = query.filter(Product.collection == collection)

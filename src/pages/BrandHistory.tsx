@@ -113,10 +113,9 @@ export function BrandHistory() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
             <div className="space-y-4">
               <div className="text-5xl font-bold text-[#C8102E]">100%</div>
-              <h3 className="text-xl font-bold tracking-wide">МЕХАНИЧЕСКИЕ</h3>
+              <h3 className="text-xl font-bold tracking-wide">Мануфактура</h3>
               <p className="text-gray-600">
-                Все наши часы оснащены механическими механизмами собственного
-                производства
+                Все наши часы оснащены  механизмами собственного производства
               </p>
             </div>
             <div className="space-y-4">

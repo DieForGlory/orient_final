@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
 import { CalendarIcon, ClockIcon, MapPinIcon, PhoneIcon, MailIcon, ArrowRightIcon } from 'lucide-react';
 import { publicApi } from '../services/publicApi';
-const BOUTIQUE = {
-  name: 'Orient Ташкент',
-  address: 'ул. Амира Темура, 107Б, Ташкент, 100084',
-  phone: '+998 71 123 45 67',
-  email: 'tashkent@orient.uz',
+import { useSettings } from '../contexts/SettingsContext';
+
+// Статические данные, которых нет в общих настройках сайта
+const BOUTIQUE_INFO = {
   hours: 'Пн-Вс: 10:00 - 22:00',
   image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80',
   services: ['Персональная консультация', 'Примерка часов', 'Сервисное обслуживание', 'Подарочная упаковка', 'Гарантийный ремонт']
 };
-const GALLERY_IMAGES = ['https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80', 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=800&q=80', 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=800&q=80', 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=800&q=80'];
+
+const GALLERY_IMAGES = [
+  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80',
+  'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=800&q=80',
+  'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=800&q=80',
+  'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=800&q=80'
+];
+
 export function Boutique() {
+  const { site } = useSettings();
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -22,6 +29,7 @@ export function Boutique() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = 'Введите имя';
@@ -33,6 +41,7 @@ export function Boutique() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -42,7 +51,7 @@ export function Boutique() {
     try {
       const response = await publicApi.createBooking({
         ...formData,
-        boutique: BOUTIQUE.name
+        boutique: site.name
       });
       alert(`✅ Спасибо! Ваша запись #${response.booking_number} принята.\n\nМы свяжемся с вами для подтверждения.`);
       // Reset form
@@ -61,6 +70,7 @@ export function Boutique() {
       setSubmitting(false);
     }
   };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -73,7 +83,9 @@ export function Boutique() {
       }));
     }
   };
-  return <div className="w-full bg-white">
+
+  return (
+    <div className="w-full bg-white">
       {/* Hero Section */}
       <section className="relative bg-black text-white py-16 sm:py-24 lg:py-32 overflow-hidden">
         <div className="absolute inset-0 opacity-10">
@@ -110,7 +122,7 @@ export function Boutique() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Image */}
             <div className="relative aspect-[4/3] overflow-hidden">
-              <img src={BOUTIQUE.image} alt={BOUTIQUE.name} className="w-full h-full object-cover" />
+              <img src={BOUTIQUE_INFO.image} alt={site.name} className="w-full h-full object-cover" />
             </div>
 
             {/* Info */}
@@ -123,7 +135,7 @@ export function Boutique() {
                   </p>
                 </div>
                 <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-black mb-4 sm:mb-6">
-                  {BOUTIQUE.name}
+                  {site.name}
                 </h2>
               </div>
 
@@ -135,7 +147,7 @@ export function Boutique() {
                       Адрес
                     </p>
                     <p className="text-sm sm:text-base text-black">
-                      {BOUTIQUE.address}
+                      {site.address}
                     </p>
                   </div>
                 </div>
@@ -147,7 +159,7 @@ export function Boutique() {
                       Телефон
                     </p>
                     <p className="text-sm sm:text-base text-black">
-                      {BOUTIQUE.phone}
+                      {site.phone}
                     </p>
                   </div>
                 </div>
@@ -159,7 +171,7 @@ export function Boutique() {
                       Email
                     </p>
                     <p className="text-sm sm:text-base text-black">
-                      {BOUTIQUE.email}
+                      {site.email}
                     </p>
                   </div>
                 </div>
@@ -171,7 +183,7 @@ export function Boutique() {
                       Часы работы
                     </p>
                     <p className="text-sm sm:text-base text-black">
-                      {BOUTIQUE.hours}
+                      {BOUTIQUE_INFO.hours}
                     </p>
                   </div>
                 </div>
@@ -182,9 +194,11 @@ export function Boutique() {
                   Наши услуги
                 </p>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
-                  {BOUTIQUE.services.map((service, index) => <span key={index} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-50 text-xs sm:text-sm tracking-wide text-black border border-black/10">
+                  {BOUTIQUE_INFO.services.map((service, index) => (
+                    <span key={index} className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-50 text-xs sm:text-sm tracking-wide text-black border border-black/10">
                       {service}
-                    </span>)}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>

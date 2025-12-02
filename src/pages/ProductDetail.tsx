@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef, createElement } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { ShoppingBagIcon, ShareIcon, CheckCircleIcon, TruckIcon, ShieldCheckIcon, RotateCcwIcon, ChevronLeftIcon, ChevronRightIcon, CheckIcon } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
+
 interface Product {
   id: string;
   name: string;
@@ -22,50 +23,41 @@ interface Product {
   fbTitle?: string;
   fbDescription?: string;
 }
+
 export function ProductDetail() {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
-  const {
-    addItem
-  } = useCart();
-  const {
-    formatPrice
-  } = useSettings();
+  const { id } = useParams<{ id: string }>();
+  const { addItem } = useCart();
+  const { formatPrice } = useSettings();
+
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [showMagnifier, setShowMagnifier] = useState(false);
-  const [magnifierPosition, setMagnifierPosition] = useState({
-    x: 0,
-    y: 0
-  });
-  const [imagePosition, setImagePosition] = useState({
-    x: 0,
-    y: 0
-  });
+  const [magnifierPosition, setMagnifierPosition] = useState({ x: 0, y: 0 });
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFlyingImage, setShowFlyingImage] = useState(false);
-  const [flyingImagePosition, setFlyingImagePosition] = useState({
-    x: 0,
-    y: 0
-  });
+  const [flyingImagePosition, setFlyingImagePosition] = useState({ x: 0, y: 0 });
   const [showToast, setShowToast] = useState(false);
+
   const imageRef = useRef<HTMLDivElement>(null);
   const addToCartButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (id) {
       fetchProduct(id);
     }
   }, [id]);
+
   useEffect(() => {
     if (!product) return;
+
     const title = product.seoTitle || `${product.name} | Orient Watch`;
     document.title = title;
+
     const updateMetaTag = (name: string, content: string, property?: string) => {
       if (!content) return;
       const selector = property ? `meta[property="${property}"]` : `meta[name="${name}"]`;
@@ -81,25 +73,41 @@ export function ProductDetail() {
       }
       meta.setAttribute('content', content);
     };
+
     updateMetaTag('description', product.seoDescription || product.description);
     updateMetaTag('keywords', product.seoKeywords || `${product.collection}, Orient, часы`);
+
+    // OG Tags
     updateMetaTag('og:title', product.fbTitle || product.seoTitle || product.name, 'og:title');
     updateMetaTag('og:description', product.fbDescription || product.seoDescription || product.description, 'og:description');
     updateMetaTag('og:image', product.image, 'og:image');
     updateMetaTag('og:type', 'product', 'og:type');
     updateMetaTag('og:url', window.location.href, 'og:url');
-    updateMetaTag('twitter:card', 'summary_large_image', 'twitter:card');
-    updateMetaTag('twitter:title', product.fbTitle || product.seoTitle || product.name, 'twitter:title');
-    updateMetaTag('twitter:description', product.fbDescription || product.seoDescription || product.description, 'twitter:description');
-    updateMetaTag('twitter:image', product.image, 'twitter:image');
-    updateMetaTag('product:price:amount', product.price.toString(), 'product:price:amount');
-    updateMetaTag('product:price:currency', 'RUB', 'product:price:currency');
-    updateMetaTag('product:availability', product.inStock ? 'in stock' : 'out of stock', 'product:availability');
-    updateMetaTag('product:brand', 'Orient', 'product:brand');
+
     return () => {
       document.title = 'Orient Watch';
     };
   }, [product]);
+
+  // Формируем единый список изображений: Главное + Дополнительные (без дублей)
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    const imgs = [product.image];
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach(img => {
+        if (img && img !== product.image) {
+          imgs.push(img);
+        }
+      });
+    }
+    return imgs;
+  }, [product]);
+
+  // Сброс выбора при смене товара
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [id]);
+
   const fetchProduct = async (productId: string) => {
     setLoading(true);
     try {
@@ -111,48 +119,47 @@ export function ProductDetail() {
       setLoading(false);
     }
   };
+
   const nextImage = () => {
-    if (product) {
-      setSelectedImage(prev => (prev + 1) % product.images.length);
+    if (allImages.length > 1) {
+      setSelectedImage((prev) => (prev + 1) % allImages.length);
     }
   };
+
   const prevImage = () => {
-    if (product) {
-      setSelectedImage(prev => (prev - 1 + product.images.length) % product.images.length);
+    if (allImages.length > 1) {
+      setSelectedImage((prev) => (prev - 1 + allImages.length) % allImages.length);
     }
   };
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const elem = imageRef.current;
     if (!elem) return;
-    const {
-      top,
-      left,
-      width,
-      height
-    } = elem.getBoundingClientRect();
+
+    const { top, left, width, height } = elem.getBoundingClientRect();
     const x = e.clientX - left;
     const y = e.clientY - top;
-    const xPercent = x / width * 100;
-    const yPercent = y / height * 100;
-    setMagnifierPosition({
-      x: e.clientX,
-      y: e.clientY
-    });
-    setImagePosition({
-      x: xPercent,
-      y: yPercent
-    });
+
+    const xPercent = (x / width) * 100;
+    const yPercent = (y / height) * 100;
+
+    setMagnifierPosition({ x: e.clientX, y: e.clientY });
+    setImagePosition({ x: xPercent, y: yPercent });
   };
+
   const handleMouseEnter = () => {
     if (window.innerWidth >= 1024) {
       setShowMagnifier(true);
     }
   };
+
   const handleMouseLeave = () => {
     setShowMagnifier(false);
   };
+
   const handleAddToCart = () => {
     if (isAddingToCart || !product) return;
+
     setIsAddingToCart(true);
     addItem({
       id: product.id,
@@ -161,8 +168,11 @@ export function ProductDetail() {
       price: product.price,
       image: product.image
     }, quantity);
+
+    // Animation logic
     const button = addToCartButtonRef.current;
     const image = imageRef.current;
+
     if (button && image) {
       const imageRect = image.getBoundingClientRect();
       setFlyingImagePosition({
@@ -170,47 +180,58 @@ export function ProductDetail() {
         y: imageRect.top + imageRect.height / 2
       });
       setShowFlyingImage(true);
+
       setTimeout(() => {
         setFlyingImagePosition({
           x: window.innerWidth - 100,
           y: 50
         });
       }, 50);
+
       setTimeout(() => {
         setShowFlyingImage(false);
         setShowSuccess(true);
         setShowToast(true);
       }, 800);
+
       setTimeout(() => {
         setIsAddingToCart(false);
         setShowSuccess(false);
       }, 2500);
+
       setTimeout(() => {
         setShowToast(false);
       }, 3500);
     }
   };
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
+    return (
+      <div className="flex items-center justify-center min-h-screen">
         <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-      </div>;
+      </div>
+    );
   }
+
   if (!product) {
-    return <div className="flex items-center justify-center min-h-screen">
+    return (
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">Товар не найден</h1>
           <Link to="/catalog" className="text-[#C8102E] hover:underline">
             Вернуться в каталог
           </Link>
         </div>
-      </div>;
+      </div>
+    );
   }
-  const currentImage = product.images[selectedImage] || product.image;
-  const specsArray = Object.entries(product.specs).map(([label, value]) => ({
-    label,
-    value
-  }));
-  return <div className="w-full bg-white">
+
+  // Используем изображение из общего списка
+  const currentImage = allImages[selectedImage] || product.image;
+  const specsArray = Object.entries(product.specs).map(([label, value]) => ({ label, value }));
+
+  return (
+    <div className="w-full bg-white">
       {/* Breadcrumb */}
       <div className="border-b border-black/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-4 sm:py-6">
@@ -223,7 +244,12 @@ export function ProductDetail() {
               КАТАЛОГ
             </Link>
             <span>/</span>
-            <span className="text-black truncate">{product.collection}</span>
+            <Link
+              to={`/catalog?collection=${product.collection}`}
+              className="text-black truncate hover:text-[#C8102E] transition-colors whitespace-nowrap uppercase"
+            >
+              {product.collection}
+            </Link>
             <span className="hidden sm:inline">/</span>
             <span className="text-black truncate hidden sm:inline">
               {product.name}
@@ -237,32 +263,59 @@ export function ProductDetail() {
           {/* Image Gallery */}
           <div className="space-y-4 sm:space-y-6">
             <div className="relative aspect-square bg-gray-50 group">
-              <div ref={imageRef} className="relative w-full h-full overflow-hidden cursor-crosshair" onMouseMove={handleMouseMove} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-                <img src={currentImage} alt={`${product.name} - изображение ${selectedImage + 1}`} className="w-full h-full object-contain p-6 sm:p-12" />
+              <div
+                ref={imageRef}
+                className="relative w-full h-full overflow-hidden cursor-crosshair"
+                onMouseMove={handleMouseMove}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <img
+                  src={currentImage}
+                  alt={`${product.name} - изображение ${selectedImage + 1}`}
+                  className="w-full h-full object-contain p-6 sm:p-12"
+                />
 
-                {showMagnifier && <div className="fixed pointer-events-none z-50 border-4 border-white shadow-2xl rounded-full overflow-hidden hidden lg:block" style={{
-                width: '200px',
-                height: '200px',
-                left: `${magnifierPosition.x - 100}px`,
-                top: `${magnifierPosition.y - 100}px`,
-                backgroundImage: `url(${currentImage})`,
-                backgroundPosition: `${imagePosition.x}% ${imagePosition.y}%`,
-                backgroundSize: '250%',
-                backgroundRepeat: 'no-repeat'
-              }}>
+                {showMagnifier && (
+                  <div
+                    className="fixed pointer-events-none z-50 border-4 border-white shadow-2xl rounded-full overflow-hidden hidden lg:block"
+                    style={{
+                      width: '200px',
+                      height: '200px',
+                      left: `${magnifierPosition.x - 100}px`,
+                      top: `${magnifierPosition.y - 100}px`,
+                      backgroundImage: `url(${currentImage})`,
+                      backgroundPosition: `${imagePosition.x}% ${imagePosition.y}%`,
+                      backgroundSize: '600%', // Зум настроен на 600%
+                      backgroundRepeat: 'no-repeat'
+                    }}
+                  >
                     <div className="absolute inset-0 border-2 border-black/10 rounded-full"></div>
-                  </div>}
+                  </div>
+                )}
               </div>
 
-              <button onClick={prevImage} className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-white/90 backdrop-blur-sm border border-black/10 opacity-0 group-hover:opacity-100 hover:bg-black hover:text-white transition-all duration-500 z-10" aria-label="Предыдущее изображение">
-                <ChevronLeftIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
-              </button>
-              <button onClick={nextImage} className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-white/90 backdrop-blur-sm border border-black/10 opacity-0 group-hover:opacity-100 hover:bg-black hover:text-white transition-all duration-500 z-10" aria-label="Следующее изображение">
-                <ChevronRightIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
-              </button>
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-white/90 backdrop-blur-sm border border-black/10 opacity-0 group-hover:opacity-100 hover:bg-black hover:text-white transition-all duration-500 z-10"
+                    aria-label="Предыдущее изображение"
+                  >
+                    <ChevronLeftIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 bg-white/90 backdrop-blur-sm border border-black/10 opacity-0 group-hover:opacity-100 hover:bg-black hover:text-white transition-all duration-500 z-10"
+                    aria-label="Следующее изображение"
+                  >
+                    <ChevronRightIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
+                  </button>
+                </>
+              )}
 
               <div className="absolute bottom-3 sm:bottom-6 right-3 sm:right-6 bg-black/80 backdrop-blur-sm text-white px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs tracking-wider">
-                {selectedImage + 1} / {product.images.length}
+                {selectedImage + 1} / {allImages.length}
               </div>
 
               <div className="hidden lg:block absolute top-6 right-6 bg-black/80 backdrop-blur-sm text-white px-4 py-2 text-xs tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -270,11 +323,20 @@ export function ProductDetail() {
               </div>
             </div>
 
-            {product.images.length > 1 && <div className="grid grid-cols-4 gap-2 sm:gap-4">
-                {product.images.map((image, index) => <button key={index} onClick={() => setSelectedImage(index)} className={`aspect-square bg-gray-50 transition-all duration-300 border-2 ${selectedImage === index ? 'border-[#C8102E]' : 'border-transparent hover:border-black/20'}`}>
+            {/* Thumbnails */}
+            {allImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-2 sm:gap-4">
+                {allImages.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`aspect-square bg-gray-50 transition-all duration-300 border-2 ${selectedImage === index ? 'border-[#C8102E]' : 'border-transparent hover:border-black/20'}`}
+                  >
                     <img src={image} alt={`${product.name} миниатюра ${index + 1}`} className="w-full h-full object-contain p-2 sm:p-3" />
-                  </button>)}
-              </div>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -295,12 +357,12 @@ export function ProductDetail() {
                 <p className="text-xs sm:text-sm text-black/50 font-medium">
                   SKU: {product.sku}
                 </p>
-                {product.inStock && <div className="flex items-center space-x-2 text-green-600">
+                {product.inStock && (
+                  <div className="flex items-center space-x-2 text-green-600">
                     <CheckCircleIcon className="w-3 h-3 sm:w-4 sm:h-4" strokeWidth={2} />
-                    <span className="text-xs sm:text-sm font-medium">
-                      В наличии
-                    </span>
-                  </div>}
+                    <span className="text-xs sm:text-sm font-medium">В наличии</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -314,17 +376,21 @@ export function ProductDetail() {
               {product.description}
             </p>
 
-            {product.features.length > 0 && <div className="space-y-3">
+            {product.features.length > 0 && (
+              <div className="space-y-3">
                 <h3 className="text-xs sm:text-sm tracking-[0.15em] font-semibold uppercase text-black">
                   Основные характеристики
                 </h3>
                 <ul className="space-y-2">
-                  {product.features.slice(0, 4).map((feature, index) => <li key={index} className="flex items-start space-x-2 sm:space-x-3 text-xs sm:text-sm text-black/70">
+                  {product.features.slice(0, 4).map((feature, index) => (
+                    <li key={index} className="flex items-start space-x-2 sm:space-x-3 text-xs sm:text-sm text-black/70">
                       <CheckCircleIcon className="w-3 h-3 sm:w-4 sm:h-4 text-[#C8102E] flex-shrink-0 mt-0.5" strokeWidth={2} />
                       <span>{feature}</span>
-                    </li>)}
+                    </li>
+                  ))}
                 </ul>
-              </div>}
+              </div>
+            )}
 
             <div className="space-y-4 pt-4">
               <div className="flex items-center space-x-3 sm:space-x-4">
@@ -332,30 +398,52 @@ export function ProductDetail() {
                   Количество
                 </label>
                 <div className="flex items-center border-2 border-black">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-medium hover:bg-black hover:text-white transition-colors" disabled={isAddingToCart}>
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-medium hover:bg-black hover:text-white transition-colors"
+                    disabled={isAddingToCart}
+                  >
                     −
                   </button>
                   <span className="px-4 sm:px-8 py-2 sm:py-3 border-x-2 border-black text-sm sm:text-base font-semibold min-w-[50px] sm:min-w-[60px] text-center">
                     {quantity}
                   </span>
-                  <button onClick={() => setQuantity(quantity + 1)} className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-medium hover:bg-black hover:text-white transition-colors" disabled={isAddingToCart}>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-medium hover:bg-black hover:text-white transition-colors"
+                    disabled={isAddingToCart}
+                  >
                     +
                   </button>
                 </div>
               </div>
 
               <div className="flex gap-3 sm:gap-4">
-                <button ref={addToCartButtonRef} onClick={handleAddToCart} disabled={isAddingToCart || showSuccess || !product.inStock} className={`flex-1 py-4 sm:py-5 text-xs sm:text-sm tracking-[0.15em] sm:tracking-[0.2em] font-semibold transition-all duration-500 flex items-center justify-center space-x-2 sm:space-x-3 uppercase ${showSuccess ? 'bg-green-600 text-white' : product.inStock ? 'bg-[#C8102E] hover:bg-[#A00D24] text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'} ${isAddingToCart ? 'opacity-75 cursor-not-allowed' : ''}`}>
-                  {showSuccess ? <>
+                <button
+                  ref={addToCartButtonRef}
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart || showSuccess || !product.inStock}
+                  className={`flex-1 py-4 sm:py-5 text-xs sm:text-sm tracking-[0.15em] sm:tracking-[0.2em] font-semibold transition-all duration-500 flex items-center justify-center space-x-2 sm:space-x-3 uppercase ${
+                    showSuccess
+                      ? 'bg-green-600 text-white'
+                      : product.inStock
+                        ? 'bg-[#C8102E] hover:bg-[#A00D24] text-white'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  } ${isAddingToCart ? 'opacity-75 cursor-not-allowed' : ''}`}
+                >
+                  {showSuccess ? (
+                    <>
                       <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
-                      <span className="hidden sm:inline">
-                        Добавлено в корзину
-                      </span>
+                      <span className="hidden sm:inline">Добавлено в корзину</span>
                       <span className="sm:hidden">Добавлено</span>
-                    </> : isAddingToCart ? <>
+                    </>
+                  ) : isAddingToCart ? (
+                    <>
                       <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span className="hidden sm:inline">Добавление...</span>
-                    </> : <>
+                    </>
+                  ) : (
+                    <>
                       <ShoppingBagIcon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
                       <span className="hidden sm:inline">
                         {product.inStock ? 'Добавить в корзину' : 'Нет в наличии'}
@@ -363,10 +451,15 @@ export function ProductDetail() {
                       <span className="sm:hidden">
                         {product.inStock ? 'В корзину' : 'Нет в наличии'}
                       </span>
-                    </>}
+                    </>
+                  )}
                 </button>
 
-                <button className="hidden sm:block p-5 border-2 border-black hover:bg-black hover:text-white transition-all duration-500" aria-label="Поделиться" disabled={isAddingToCart}>
+                <button
+                  className="hidden sm:block p-5 border-2 border-black hover:bg-black hover:text-white transition-all duration-500"
+                  aria-label="Поделиться"
+                  disabled={isAddingToCart}
+                >
                   <ShareIcon className="w-5 h-5" strokeWidth={2} />
                 </button>
               </div>
@@ -417,7 +510,8 @@ export function ProductDetail() {
         </div>
 
         {/* Specifications */}
-        {specsArray.length > 0 && <div className="mt-16 sm:mt-24 lg:mt-32 pt-12 sm:pt-16 border-t border-black/10">
+        {specsArray.length > 0 && (
+          <div className="mt-16 sm:mt-24 lg:mt-32 pt-12 sm:pt-16 border-t border-black/10">
             <div className="mb-8 sm:mb-12">
               <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
                 <div className="w-8 sm:w-12 h-0.5 bg-[#C8102E]"></div>
@@ -431,28 +525,37 @@ export function ProductDetail() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-4 sm:gap-y-6">
-              {specsArray.map((spec, index) => <div key={index} className="flex justify-between items-center py-4 sm:py-5 border-b border-black/10 gap-4">
+              {specsArray.map((spec, index) => (
+                <div key={index} className="flex justify-between items-center py-4 sm:py-5 border-b border-black/10 gap-4">
                   <span className="text-xs sm:text-sm font-medium text-black/60">
                     {spec.label}
                   </span>
                   <span className="text-xs sm:text-sm font-semibold text-black text-right">
                     {spec.value}
                   </span>
-                </div>)}
+                </div>
+              ))}
             </div>
-          </div>}
+          </div>
+        )}
       </div>
 
-      {showFlyingImage && <div className="fixed pointer-events-none z-50 transition-all duration-700 ease-out" style={{
-      left: `${flyingImagePosition.x}px`,
-      top: `${flyingImagePosition.y}px`,
-      transform: 'translate(-50%, -50%) scale(0.3)',
-      opacity: showFlyingImage ? 1 : 0
-    }}>
+      {showFlyingImage && (
+        <div
+          className="fixed pointer-events-none z-50 transition-all duration-700 ease-out"
+          style={{
+            left: `${flyingImagePosition.x}px`,
+            top: `${flyingImagePosition.y}px`,
+            transform: 'translate(-50%, -50%) scale(0.3)',
+            opacity: showFlyingImage ? 1 : 0
+          }}
+        >
           <img src={currentImage} alt="Flying product" className="w-24 h-24 sm:w-32 sm:h-32 object-contain rounded-lg shadow-2xl" />
-        </div>}
+        </div>
+      )}
 
-      {showToast && <div className="fixed top-20 sm:top-24 right-4 sm:right-8 z-50 animate-slide-in-right">
+      {showToast && (
+        <div className="fixed top-20 sm:top-24 right-4 sm:right-8 z-50 animate-slide-in-right">
           <div className="bg-green-600 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-lg shadow-2xl flex items-center space-x-3 sm:space-x-4 min-w-[280px] sm:min-w-[320px]">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
               <CheckIcon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2} />
@@ -469,6 +572,8 @@ export function ProductDetail() {
               В корзину
             </Link>
           </div>
-        </div>}
-    </div>;
+        </div>
+      )}
+    </div>
+  );
 }
