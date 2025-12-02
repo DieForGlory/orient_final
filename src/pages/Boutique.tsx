@@ -3,7 +3,7 @@ import { CalendarIcon, ClockIcon, MapPinIcon, PhoneIcon, MailIcon, ArrowRightIco
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
 
-// Статические данные, которых нет в общих настройках сайта
+// Статические данные, которых нет в общих настройках сайта (Часы работы и картинка)
 const BOUTIQUE_INFO = {
   hours: 'Пн-Вс: 10:00 - 22:00',
   image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&q=80',
@@ -18,7 +18,9 @@ const GALLERY_IMAGES = [
 ];
 
 export function Boutique() {
+  // [ВАЖНО] Получаем данные из глобальных настроек (админки)
   const { site } = useSettings();
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -51,7 +53,7 @@ export function Boutique() {
     try {
       const response = await publicApi.createBooking({
         ...formData,
-        boutique: site.name
+        boutique: site.name // Используем название бутика из настроек
       });
       alert(`✅ Спасибо! Ваша запись #${response.booking_number} принята.\n\nМы свяжемся с вами для подтверждения.`);
       // Reset form
@@ -134,12 +136,14 @@ export function Boutique() {
                     Наша локация
                   </p>
                 </div>
+                {/* [ВАЖНО] Название из настроек */}
                 <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-black mb-4 sm:mb-6">
                   {site.name}
                 </h2>
               </div>
 
               <div className="space-y-4 sm:space-y-6">
+                {/* [ВАЖНО] Адрес из настроек */}
                 <div className="flex items-start space-x-4 p-4 sm:p-6 border-2 border-black/10">
                   <MapPinIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#C8102E] flex-shrink-0 mt-1" strokeWidth={2} />
                   <div>
@@ -152,6 +156,7 @@ export function Boutique() {
                   </div>
                 </div>
 
+                {/* [ВАЖНО] Телефон из настроек */}
                 <div className="flex items-start space-x-4 p-4 sm:p-6 border-2 border-black/10">
                   <PhoneIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#C8102E] flex-shrink-0 mt-1" strokeWidth={2} />
                   <div>
@@ -164,6 +169,7 @@ export function Boutique() {
                   </div>
                 </div>
 
+                {/* [ВАЖНО] Email из настроек */}
                 <div className="flex items-start space-x-4 p-4 sm:p-6 border-2 border-black/10">
                   <MailIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#C8102E] flex-shrink-0 mt-1" strokeWidth={2} />
                   <div>
@@ -332,5 +338,6 @@ export function Boutique() {
           </div>
         </div>
       </section>
-    </div>;
+    </div>
+  );
 }

@@ -4,23 +4,61 @@ import { Link } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { publicApi } from '../services/publicApi';
+
+// Интерфейс для результатов поиска
+interface SearchResult {
+  id: string;
+  name: string;
+  collection: string;
+  price: number;
+  image: string;
+}
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Новые состояния для поиска
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   const [logo, setLogo] = useState<{
     logoUrl: string;
     logoDarkUrl: string | null;
   } | null>(null);
-  const {
-    totalItems
-  } = useCart();
-  const {
-    formatPrice
-  } = useSettings();
+
+  const { totalItems } = useCart();
+  const { formatPrice } = useSettings();
+
   useEffect(() => {
     loadLogo();
   }, []);
+
+  // Эффект для живого поиска с задержкой (debounce)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchQuery.trim().length > 1) { // Искать только если введено больше 1 символа
+        setIsSearching(true);
+        try {
+          const response = await publicApi.getProducts({
+            search: searchQuery,
+            limit: 6 // Ограничиваем кол-во результатов в выпадающем списке
+          });
+          setSearchResults(response.data);
+        } catch (error) {
+          console.error('Search error:', error);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 500); // Задержка 500мс
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const loadLogo = async () => {
     try {
       const data = await publicApi.getSiteLogo();
@@ -29,7 +67,15 @@ export function Header() {
       console.error('Error loading logo:', error);
     }
   };
-  return <>
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  };
+
+  return (
+    <>
       {/* Promo Banner */}
       <div className="bg-black text-white text-center py-2 sm:py-3 px-4 overflow-hidden relative">
         <p className="text-[10px] sm:text-xs tracking-[0.15em] sm:tracking-[0.2em] font-medium animate-fade-in">
@@ -133,88 +179,79 @@ export function Header() {
       </header>
 
       {/* Search Modal */}
-      {searchOpen && <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-fade-in">
+      {searchOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="absolute inset-x-0 top-0 bg-white shadow-2xl animate-slide-down">
             <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
               <div className="flex items-center gap-4">
                 <SearchIcon className="w-6 h-6 text-black/40 flex-shrink-0" strokeWidth={2} />
-                <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Поиск часов Orient..." className="flex-1 text-xl sm:text-2xl font-medium tracking-wide focus:outline-none placeholder:text-black/30" autoFocus />
-                <button onClick={() => {
-              setSearchOpen(false);
-              setSearchQuery('');
-            }} className="p-2 hover:bg-gray-100 transition-colors rounded-full" aria-label="Закрыть поиск">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Поиск часов Orient..."
+                  className="flex-1 text-xl sm:text-2xl font-medium tracking-wide focus:outline-none placeholder:text-black/30"
+                  autoFocus
+                />
+                <button onClick={closeSearch} className="p-2 hover:bg-gray-100 transition-colors rounded-full" aria-label="Закрыть поиск">
                   <XIcon className="w-6 h-6" strokeWidth={2} />
                 </button>
               </div>
 
-              {searchQuery && <div className="mt-8 space-y-6">
+              {searchQuery && (
+                <div className="mt-8 space-y-6">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm text-black/60">Результаты поиска</p>
-                    <Link to={`/catalog?search=${searchQuery}`} onClick={() => {
-                setSearchOpen(false);
-                setSearchQuery('');
-              }} className="text-sm text-[#C8102E] hover:underline font-medium">
-                      Показать все
-                    </Link>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {[{
-                id: '1',
-                name: 'Kamasu Automatic Diver',
-                collection: 'SPORTS',
-                price: 45900,
-                image: 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=200&q=80'
-              }, {
-                id: '2',
-                name: 'Bambino Classic',
-                collection: 'CLASSIC',
-                price: 32900,
-                image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=200&q=80'
-              }].map(watch => <Link key={watch.id} to={`/product/${watch.id}`} onClick={() => {
-                setSearchOpen(false);
-                setSearchQuery('');
-              }} className="flex gap-4 p-4 hover:bg-gray-50 transition-colors border border-black/10">
-                        <img src={watch.image} alt={watch.name} className="w-20 h-20 object-cover bg-gray-50" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs tracking-wider text-black/50 uppercase mb-1">
-                            {watch.collection}
-                          </p>
-                          <h3 className="text-sm font-semibold text-black mb-2 truncate">
-                            {watch.name}
-                          </h3>
-                          <p className="text-lg font-bold text-black">
-                            {formatPrice(watch.price)}
-                          </p>
-                        </div>
-                      </Link>)}
-                  </div>
-
-                  <div className="pt-6 border-t border-black/10">
-                    <p className="text-xs tracking-wider uppercase text-black/50 mb-4">
-                      Популярные запросы
+                    <p className="text-sm text-black/60">
+                      {isSearching ? 'Поиск...' : searchResults.length > 0 ? `Найдено: ${searchResults.length}` : 'Ничего не найдено'}
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {['Дайверские часы', 'Автоматические', 'Классические', 'Sports', 'Bambino'].map(term => <button key={term} onClick={() => setSearchQuery(term)} className="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-sm font-medium transition-colors">
-                          {term}
-                        </button>)}
-                    </div>
+                    {searchResults.length > 0 && (
+                      <Link to={`/catalog?search=${searchQuery}`} onClick={closeSearch} className="text-sm text-[#C8102E] hover:underline font-medium">
+                        Показать все результаты
+                      </Link>
+                    )}
                   </div>
-                </div>}
 
-              {!searchQuery && <div className="mt-12 text-center space-y-4">
-                  <SearchIcon className="w-12 h-12 text-black/20 mx-auto" strokeWidth={1.5} />
-                  <p className="text-sm text-black/40">
-                    Начните вводить для поиска часов Orient
-                  </p>
-                </div>}
+                  {isSearching ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-8 h-8 border-2 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {searchResults.map(watch => (
+                        <Link
+                          key={watch.id}
+                          to={`/product/${watch.id}`}
+                          onClick={closeSearch}
+                          className="flex gap-4 p-4 hover:bg-gray-50 transition-colors border border-black/10 group"
+                        >
+                          <img src={watch.image} alt={watch.name} className="w-20 h-20 object-cover bg-gray-50" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs tracking-wider text-black/50 uppercase mb-1">
+                              {watch.collection}
+                            </p>
+                            <h3 className="text-sm font-semibold text-black mb-2 truncate group-hover:text-[#C8102E] transition-colors">
+                              {watch.name}
+                            </h3>
+                            <p className="text-lg font-bold text-black">
+                              {formatPrice(watch.price)}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-black/40">
+                      По запросу "{searchQuery}" ничего не найдено
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="absolute inset-0 -z-10" onClick={() => {
-        setSearchOpen(false);
-        setSearchQuery('');
-      }}></div>
-        </div>}
-    </>;
+          <div className="absolute inset-0 -z-10" onClick={closeSearch}></div>
+        </div>
+      )}
+    </>
+  );
 }

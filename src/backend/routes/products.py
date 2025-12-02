@@ -3,11 +3,11 @@ Products routes - CRUD operations
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_  # Добавили or_ для поиска по нескольким полям
-from typing import Optional
+from sqlalchemy import func, or_
+from typing import Optional, List
 import json
 from datetime import datetime
-from database import get_db, Product, FilterOption
+from database import get_db, Product
 from schemas import ProductCreate, ProductUpdate
 from auth import require_admin
 
@@ -81,6 +81,7 @@ async def get_products(
     case_material: Optional[str] = Query(None, alias="caseMaterial"),
     dial_color: Optional[str] = Query(None, alias="dialColor"),
     water_resistance: Optional[str] = Query(None, alias="waterResistance"),
+    features: Optional[List[str]] = Query(None), # <--- ДОБАВЛЕНО
     db: Session = Depends(get_db)
 ):
     """Get all products with filters and pagination (public)"""
@@ -88,7 +89,6 @@ async def get_products(
 
     # Filters
     if search:
-        # Ищем совпадение в имени ИЛИ в SKU
         query = query.filter(
             or_(
                 Product.name.contains(search),
@@ -116,6 +116,12 @@ async def get_products(
 
     if water_resistance:
         query = query.filter(Product.water_resistance == water_resistance)
+
+    # <--- НОВАЯ ЛОГИКА ФИЛЬТРАЦИИ ПО ОСОБЕННОСТЯМ --->
+    if features:
+        for feature in features:
+            # Ищем подстроку в JSON массиве (он хранится как текст)
+            query = query.filter(Product.features.contains(feature))
 
     # Count total
     total = query.count()
@@ -185,6 +191,26 @@ async def get_available_filters(db: Session = Depends(get_db)):
         ]
     }
 
+# <--- НОВЫЙ ЭНДПОИНТ ДЛЯ АДМИНКИ (ПОЛУЧЕНИЕ ВСЕХ ОСОБЕННОСТЕЙ) --->
+@router.get("/api/products/features/unique")
+async def get_unique_features(db: Session = Depends(get_db)):
+    """Get all unique features from all products (for admin setup)"""
+    products = db.query(Product.features).all()
+
+    unique_set = set()
+    for p in products:
+        if p.features:
+            try:
+                # Пытаемся распарсить JSON
+                feats = json.loads(p.features)
+                if isinstance(feats, list):
+                    for f in feats:
+                        unique_set.add(f.strip())
+            except:
+                pass
+
+    return sorted(list(unique_set))
+
 @router.get("/api/products/{product_id}")
 async def get_product(product_id: str, db: Session = Depends(get_db)):
     """Get product by ID (public)"""
@@ -208,29 +234,23 @@ async def get_all_products_admin(
     """Get all products with filters (admin)"""
     query = db.query(Product)
 
-    # Filters
     if search:
-        # И тут тоже добавляем поиск по SKU
         query = query.filter(
             or_(
                 Product.name.contains(search),
                 Product.sku.contains(search)
             )
         )
-    
+
     if collection:
         query = query.filter(Product.collection == collection)
-    
-    # Count total
+
     total = query.count()
-    
-    # Pagination
     offset = (page - 1) * limit
     products = query.offset(offset).limit(limit).all()
-    
-    # Convert to dict
+
     data = [product.to_dict() for product in products]
-    
+
     return {
         "data": data,
         "pagination": {
@@ -249,10 +269,10 @@ async def get_product_admin(
 ):
     """Get product by ID (admin)"""
     product = db.query(Product).filter(Product.id == product_id).first()
-    
+
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
     return product.to_dict()
 
 @router.post("/api/admin/products")
@@ -262,23 +282,18 @@ async def create_product(
     current_user = Depends(require_admin)
 ):
     """Create new product (admin)"""
-    # Check if SKU exists
     if product.sku:
         existing = db.query(Product).filter(Product.sku == product.sku).first()
         if existing:
             raise HTTPException(status_code=409, detail="SKU already exists")
-    
-    # Generate ID from name
+
     product_id = product.name.lower().replace(" ", "-").replace("&", "and")
-    
-    # Check if ID exists
+
     existing_id = db.query(Product).filter(Product.id == product_id).first()
     if existing_id:
-        # Add random suffix
         import uuid
         product_id = f"{product_id}-{str(uuid.uuid4())[:8]}"
-    
-    # Create product
+
     db_product = Product(
         id=product_id,
         name=product.name,
@@ -302,11 +317,11 @@ async def create_product(
         fb_title=getattr(product, 'fbTitle', None),
         fb_description=getattr(product, 'fbDescription', None),
     )
-    
+
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
-    
+
     return db_product.to_dict()
 
 @router.put("/api/admin/products/{product_id}")
@@ -318,13 +333,12 @@ async def update_product(
 ):
     """Update product (admin)"""
     db_product = db.query(Product).filter(Product.id == product_id).first()
-    
+
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
-    # Update fields
+
     update_data = product.dict(exclude_unset=True)
-    
+
     for key, value in update_data.items():
         if key == "images" and value is not None:
             setattr(db_product, key, json.dumps(value))
@@ -354,10 +368,10 @@ async def update_product(
             setattr(db_product, "fb_description", value)
         else:
             setattr(db_product, key, value)
-    
+
     db.commit()
     db.refresh(db_product)
-    
+
     return db_product.to_dict()
 
 @router.delete("/api/admin/products/{product_id}")
@@ -368,11 +382,11 @@ async def delete_product(
 ):
     """Delete product (admin)"""
     db_product = db.query(Product).filter(Product.id == product_id).first()
-    
+
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
-    
+
     db.delete(db_product)
     db.commit()
-    
+
     return {"message": "Product deleted", "id": product_id}

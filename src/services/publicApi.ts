@@ -112,6 +112,12 @@ class PublicApiService {
   getCurrency() {
     return this.request('/api/settings/currency');
   }
+  getFilterSettings() {
+    return this.request('/api/settings/filters');
+  }
+  getShippingInfo() {
+    return this.request('/api/settings/shipping');
+  }
   getSiteInfo() {
     return this.request('/api/settings/site');
   }

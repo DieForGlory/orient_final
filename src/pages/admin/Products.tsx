@@ -14,9 +14,17 @@ interface Product {
   sku: string;
 }
 
+interface Collection {
+  id: string;
+  name: string;
+}
+
 export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Добавляем состояние для списка коллекций
+  const [collections, setCollections] = useState<Collection[]>([]);
 
   // Используем URL параметры для хранения состояния
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,6 +44,20 @@ export function AdminProducts() {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Загружаем коллекции при монтировании компонента
+  useEffect(() => {
+    fetchCollections();
+  }, []);
+
+  const fetchCollections = async () => {
+    try {
+      const data = await api.getCollections();
+      setCollections(data);
+    } catch (error) {
+      console.error('Error fetching collections:', error);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -225,9 +247,12 @@ export function AdminProducts() {
             className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 border-black/20 focus:border-[#C8102E] focus:outline-none bg-white"
           >
             <option value="all">Все коллекции</option>
-            <option value="SPORTS">SPORTS</option>
-            <option value="CLASSIC">CLASSIC</option>
-            <option value="CONTEMPORARY">CONTEMPORARY</option>
+            {/* Динамический вывод коллекций */}
+            {collections.map(collection => (
+              <option key={collection.id} value={collection.name}>
+                {collection.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -269,7 +294,6 @@ export function AdminProducts() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">
                         <Link to={`/product/${product.id}`} target="_blank" className="p-2 hover:bg-gray-100 transition-colors" title="Просмотр"><EyeIcon className="w-4 h-4" strokeWidth={2} /></Link>
-                        {/* Здесь добавляем state для передачи текущих фильтров */}
                         <Link
                           to={`/admin/products/${product.id}/edit`}
                           state={{ search: searchParams.toString() }}

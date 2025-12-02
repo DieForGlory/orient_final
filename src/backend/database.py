@@ -232,7 +232,7 @@ class Settings(Base):
     facebook_url = Column(String, nullable=True)
     instagram_url = Column(String, nullable=True)
     twitter_url = Column(String, nullable=True)
-    
+    filter_config = Column(Text, nullable=True)  # Добавлено
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Create all tables

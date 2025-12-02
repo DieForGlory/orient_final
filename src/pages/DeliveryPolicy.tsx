@@ -4,11 +4,14 @@ import { TruckIcon, ClockIcon, MapPinIcon, PackageIcon } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 export function DeliveryPolicy() {
-  const { site } = useSettings();
+  // Получаем shipping и formatPrice из контекста
+  const { site, shipping, formatPrice } = useSettings();
 
-  return <div className="w-full bg-white">
+  return (
+    <div className="w-full bg-white">
       {/* Hero Section */}
       <section className="relative bg-black text-white py-16 sm:py-24">
+        {/* ... (код Hero секции без изменений) ... */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-1/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
           <div className="absolute top-2/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
@@ -59,9 +62,9 @@ export function DeliveryPolicy() {
                 Доставка по Ташкенту в течение 1-2 рабочих дней. Курьер свяжется
                 с вами для согласования времени доставки.
               </p>
-              <p className="text-sm font-semibold">Стоимость: 50 000 сум</p>
+              <p className="text-sm font-semibold">Стоимость: {formatPrice(shipping.standardCost)}</p>
               <p className="text-xs text-black/60 mt-2">
-                Бесплатно при заказе от 100 000 сум
+                Бесплатно при заказе от {formatPrice(shipping.freeShippingThreshold)}
               </p>
             </div>
 
@@ -76,7 +79,7 @@ export function DeliveryPolicy() {
                 Срочная доставка в день заказа. Доступна при оформлении заказа
                 до 14:00.
               </p>
-              <p className="text-sm font-semibold">Стоимость: 100 000 сум</p>
+              <p className="text-sm font-semibold">Стоимость: {formatPrice(shipping.expressCost)}</p>
               <p className="text-xs text-black/60 mt-2">Только по Ташкенту</p>
             </div>
 
@@ -88,7 +91,7 @@ export function DeliveryPolicy() {
                 Самовывоз
               </h3>
               <p className="text-black/70 mb-4 leading-relaxed">
-                Забрать заказ можно в нашем бутике в центре Ташкента. Товар
+                Забрать заказ можно в нашем бутике в центре Ташкента ({site.address}). Товар
                 будет готов к выдаче в течение 2 часов.
               </p>
               <p className="text-sm font-semibold">Бесплатно</p>
@@ -108,20 +111,22 @@ export function DeliveryPolicy() {
                 Доставка в регионы Узбекистана через транспортные компании. Срок
                 доставки 3-5 рабочих дней.
               </p>
+              {/* Примечание: В базе данных нет отдельного поля для регионов,
+                  поэтому здесь оставляем хардкод или привязываемся к стандарту + наценка */}
               <p className="text-sm font-semibold">От 80 000 сум</p>
               <p className="text-xs text-black/60 mt-2">Зависит от региона</p>
             </div>
           </div>
         </section>
 
+        {/* Остальные секции (Оплата, Инфо, Контакты) оставляем без изменений */}
         {/* Payment Methods */}
         <section className="mb-16 sm:mb-24">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-8 sm:mb-12 uppercase">
             Способы оплаты
           </h2>
-
           <div className="space-y-6">
-            <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
+             <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
               <h3 className="text-lg font-bold mb-3 uppercase tracking-wide">
                 Наличными курьеру
               </h3>
@@ -130,8 +135,8 @@ export function DeliveryPolicy() {
                 гарантийный талон.
               </p>
             </div>
-
-            <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
+            {/* ... другие способы оплаты ... */}
+             <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
               <h3 className="text-lg font-bold mb-3 uppercase tracking-wide">
                 Банковской картой
               </h3>
@@ -140,8 +145,7 @@ export function DeliveryPolicy() {
                 оплата через защищенное соединение.
               </p>
             </div>
-
-            <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
+             <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
               <h3 className="text-lg font-bold mb-3 uppercase tracking-wide">
                 Банковский перевод
               </h3>
@@ -150,8 +154,7 @@ export function DeliveryPolicy() {
                 email для подтверждения.
               </p>
             </div>
-
-            <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
+             <div className="border-l-4 border-[#C8102E] pl-6 sm:pl-8">
               <h3 className="text-lg font-bold mb-3 uppercase tracking-wide">
                 Рассрочка
               </h3>
@@ -168,7 +171,6 @@ export function DeliveryPolicy() {
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-6 uppercase">
             Важная информация
           </h2>
-
           <ul className="space-y-4 text-black/70">
             <li className="flex items-start space-x-3">
               <span className="text-[#C8102E] font-bold mt-1">•</span>
@@ -217,5 +219,6 @@ export function DeliveryPolicy() {
           </div>
         </section>
       </div>
-    </div>;
+    </div>
+  );
 }

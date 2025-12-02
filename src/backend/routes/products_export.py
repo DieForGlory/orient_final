@@ -192,14 +192,23 @@ async def import_products(
                         specs[spec_field] = str(row_data[spec_field])
                 
                 # Prepare data
+                features_raw = row_data.get("features")
+                features_list = []
+                if features_raw:
+                    try:
+                        features_list = json.loads(features_raw)
+                        if not isinstance(features_list, list):
+                            features_list = [str(features_list)]
+                    except:
+                        features_list = [f.strip() for f in str(features_raw).split(',') if f.strip()]
                 product_data = {
                     "name": row_data["name"],
                     "collection": row_data["collection"],
                     "price": float(row_data["price"]) if row_data.get("price") else 0,
                     "image": row_data.get("image"),
-                    "images": row_data.get("images"),  # Keep as string
+                    "images": row_data.get("images"),
                     "description": row_data.get("description"),
-                    "features": row_data.get("features"),  # Keep as string
+                    "features": json.dumps(features_list, ensure_ascii=False),
                     "specs": json.dumps(specs, ensure_ascii=False),  # Convert dict to JSON
                     "in_stock": bool(row_data.get("in_stock", True)),
                     "stock_quantity": int(row_data.get("stock_quantity", 0)) if row_data.get("stock_quantity") else 0,
