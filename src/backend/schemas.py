@@ -156,8 +156,14 @@ class HeroContent(BaseModel):
     title: str
     subtitle: str
     image: str
+    mobileImage: Optional[str] = ""
     ctaText: str
     ctaLink: str
+    # Цвета (опциональны, чтобы не ломать старые запросы)
+    buttonTextColor: Optional[str] = "#FFFFFF"
+    buttonBgColor: Optional[str] = "transparent"
+    buttonHoverTextColor: Optional[str] = "#000000"
+    buttonHoverBgColor: Optional[str] = "#FFFFFF"
 
 class PromoBanner(BaseModel):
     text: str

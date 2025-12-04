@@ -28,6 +28,9 @@ export function Header() {
     logoDarkUrl: string | null;
   } | null>(null);
 
+  // Добавляем состояние загрузки логотипа
+  const [logoLoading, setLogoLoading] = useState(true);
+
   const { totalItems } = useCart();
   const { formatPrice } = useSettings();
 
@@ -65,6 +68,9 @@ export function Header() {
       setLogo(data);
     } catch (error) {
       console.error('Error loading logo:', error);
+    } finally {
+      // Отключаем загрузку в любом случае
+      setLogoLoading(false);
     }
   };
 
@@ -96,9 +102,20 @@ export function Header() {
 
             {/* Logo */}
             <Link to="/" className="flex-shrink-0 group">
-              {logo?.logoUrl ? <img src={logo.logoUrl} alt="ORIENT" className="h-8 sm:h-10 lg:h-12 object-contain transition-all duration-500 group-hover:opacity-80" /> : <div className="text-lg sm:text-xl lg:text-2xl tracking-[0.15em] sm:tracking-[0.2em] lg:tracking-[0.25em] font-bold transition-all duration-500 group-hover:tracking-[0.2em] sm:group-hover:tracking-[0.25em] lg:group-hover:tracking-[0.3em] group-hover:text-[#C8102E]">
+              {logoLoading ? (
+                // Скелетон загрузки (серый прямоугольник)
+                <div className="h-8 sm:h-10 lg:h-12 w-24 sm:w-32 bg-gray-100 animate-pulse rounded"></div>
+              ) : logo?.logoUrl ? (
+                <img
+                  src={logo.logoUrl}
+                  alt="ORIENT"
+                  className="h-8 sm:h-10 lg:h-12 object-contain transition-all duration-500 group-hover:opacity-80"
+                />
+              ) : (
+                <div className="text-lg sm:text-xl lg:text-2xl tracking-[0.15em] sm:tracking-[0.2em] lg:tracking-[0.25em] font-bold transition-all duration-500 group-hover:tracking-[0.2em] sm:group-hover:tracking-[0.25em] lg:group-hover:tracking-[0.3em] group-hover:text-[#C8102E]">
                   ORIENT
-                </div>}
+                </div>
+              )}
             </Link>
 
             {/* Desktop Navigation */}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon } from 'lucide-react';
+
 interface CollectionCardProps {
   id: string;
   name: string;
@@ -9,6 +10,7 @@ interface CollectionCardProps {
   watchCount: number;
   number?: string;
 }
+
 export function CollectionCard({
   id,
   name,
@@ -17,16 +19,16 @@ export function CollectionCard({
   watchCount,
   number = '01'
 }: CollectionCardProps) {
-  return <Link to={`/collection/${id}`} className="group block bg-white overflow-hidden reveal-up">
+  return (
+    <Link to={`/collection/${id}`} className="group block bg-white overflow-hidden reveal-up">
       <div className="relative">
-        {/* Large Number Overlay - Hidden on mobile for cleaner look */}
-        <div className="hidden sm:block absolute top-6 left-6 lg:top-8 lg:left-8 z-20 text-[120px] md:text-[160px] lg:text-[180px] xl:text-[220px] font-bold leading-none text-white/10 group-hover:text-[#C8102E]/20 transition-all duration-1000 pointer-events-none">
-          {number}
-        </div>
-
         {/* Image Section - Compact on mobile, similar to product cards */}
         <div className="relative aspect-[4/5] sm:aspect-[4/3] lg:aspect-[16/10] overflow-hidden bg-black">
-          <img src={image} alt={name} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1500" />
+          <img
+            src={image}
+            alt={name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1500"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
 
           {/* Collection Name on Image */}
@@ -57,5 +59,6 @@ export function CollectionCard({
           </div>
         </div>
       </div>
-    </Link>;
+    </Link>
+  );
 }

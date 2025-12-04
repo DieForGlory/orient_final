@@ -14,8 +14,14 @@ interface HeroContent {
   title: string;
   subtitle: string;
   image: string;
+  mobileImage?: string;
   ctaText: string;
   ctaLink: string;
+  // Colors
+  buttonTextColor?: string;
+  buttonBgColor?: string;
+  buttonHoverTextColor?: string;
+  buttonHoverBgColor?: string;
 }
 
 interface PromoBanner {
@@ -396,35 +402,147 @@ export function AdminContent() {
           <ImageUpload
             value={heroContent.image}
             onChange={(url) => setHeroContent({ ...heroContent, image: url })}
-            label="Изображение часов"
+            label="Изображение (Desktop)"
             required
           />
+
+          <ImageUpload
+            value={heroContent.mobileImage || ''}
+            onChange={(url) => setHeroContent({ ...heroContent, mobileImage: url })}
+            label="Изображение (Mobile)"
+            required={false} // Не обязательно, fallback на десктоп
+          />
+          <p className="text-xs text-black/50 -mt-4 mb-4">
+            Рекомендуемый формат для мобильных: вертикальный (9:16). Если не загружено, будет использоваться Desktop версия.
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium tracking-wider uppercase mb-3">
-                Текст кнопки <span className="text-[#C8102E]">*</span>
+                Текст кнопки
               </label>
               <input
                 type="text"
                 value={heroContent.ctaText}
                 onChange={(e) => setHeroContent({ ...heroContent, ctaText: e.target.value })}
                 className="w-full px-4 py-3 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none"
-                placeholder="Смотреть коллекцию"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium tracking-wider uppercase mb-3">
-                Ссылка кнопки <span className="text-[#C8102E]">*</span>
+                Ссылка
               </label>
               <input
                 type="text"
                 value={heroContent.ctaLink}
                 onChange={(e) => setHeroContent({ ...heroContent, ctaLink: e.target.value })}
                 className="w-full px-4 py-3 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none"
-                placeholder="/catalog"
               />
+            </div>
+          </div>
+
+          {/* Настройки цветов кнопки */}
+          <div className="border-t border-black/10 pt-4 mt-4">
+            <h3 className="text-sm font-bold uppercase mb-4">Стилизация кнопки</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Обычное состояние */}
+              <div className="space-y-4 p-4 bg-gray-50 border border-gray-200">
+                <p className="text-xs font-bold uppercase text-gray-500">Обычное состояние</p>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs mb-1">Цвет текста</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={heroContent.buttonTextColor || '#FFFFFF'}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonTextColor: e.target.value })}
+                        className="h-10 w-10 border cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={heroContent.buttonTextColor || '#FFFFFF'}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonTextColor: e.target.value })}
+                        className="w-full px-2 border text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs mb-1">Цвет фона</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={heroContent.buttonBgColor === 'transparent' ? '#000000' : heroContent.buttonBgColor}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonBgColor: e.target.value })}
+                        className="h-10 w-10 border cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={heroContent.buttonBgColor || 'transparent'}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonBgColor: e.target.value })}
+                        className="w-full px-2 border text-sm"
+                        placeholder="transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Активное состояние (Hover) */}
+              <div className="space-y-4 p-4 bg-gray-50 border border-gray-200">
+                <p className="text-xs font-bold uppercase text-gray-500">При наведении (Hover)</p>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs mb-1">Цвет текста</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={heroContent.buttonHoverTextColor || '#000000'}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonHoverTextColor: e.target.value })}
+                        className="h-10 w-10 border cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={heroContent.buttonHoverTextColor || '#000000'}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonHoverTextColor: e.target.value })}
+                        className="w-full px-2 border text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs mb-1">Цвет фона</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={heroContent.buttonHoverBgColor || '#FFFFFF'}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonHoverBgColor: e.target.value })}
+                        className="h-10 w-10 border cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={heroContent.buttonHoverBgColor || '#FFFFFF'}
+                        onChange={(e) => setHeroContent({ ...heroContent, buttonHoverBgColor: e.target.value })}
+                        className="w-full px-2 border text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Превью */}
+            <div className="mt-4 p-4 bg-gray-900 flex justify-center items-center rounded">
+               <button
+                 className="px-8 py-4 text-xs font-medium uppercase tracking-[0.2em] border-2 transition-all duration-300"
+                 style={{
+                   color: heroContent.buttonTextColor,
+                   backgroundColor: heroContent.buttonBgColor,
+                   borderColor: heroContent.buttonTextColor // Граница обычно совпадает с цветом текста
+                 }}
+               >
+                 {heroContent.ctaText || 'Пример кнопки'}
+               </button>
             </div>
           </div>
         </div>

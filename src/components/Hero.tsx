@@ -7,13 +7,20 @@ interface HeroContent {
   title: string;
   subtitle: string;
   image: string;
+  mobileImage?: string; // <--- Добавлено
   ctaText: string;
   ctaLink: string;
+  // ... цвета ...
+  buttonTextColor?: string;
+  buttonBgColor?: string;
+  buttonHoverTextColor?: string;
+  buttonHoverBgColor?: string;
 }
 
 export function Hero() {
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState<HeroContent | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     fetchHeroContent();
@@ -25,39 +32,52 @@ export function Hero() {
       setContent(data);
     } catch (error) {
       console.error('Error fetching hero content:', error);
-      // Fallback content
+      // Fallback
       setContent({
         title: 'НАЙДИТЕ\nИДЕАЛЬНЫЕ\nЧАСЫ.',
         subtitle: 'Японское мастерство и точность в каждой детали',
         image: 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=1600&q=80',
+        mobileImage: '',
         ctaText: 'Смотреть коллекцию',
-        ctaLink: '/catalog'
+        ctaLink: '/catalog',
+        // ... цвета ...
       });
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <section className="relative bg-black text-white min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-      </section>
-    );
-  }
-
+  if (loading) return null; // Или спиннер
   if (!content) return null;
+
+  // Динамические стили кнопки (как в предыдущем шаге)
+  const buttonStyle = {
+    color: isHovered
+      ? (content.buttonHoverTextColor || '#000000')
+      : (content.buttonTextColor || '#FFFFFF'),
+    backgroundColor: isHovered
+      ? (content.buttonHoverBgColor || '#FFFFFF')
+      : (content.buttonBgColor || 'transparent'),
+    borderColor: isHovered
+      ? (content.buttonHoverBgColor || '#FFFFFF')
+      : (content.buttonTextColor || '#FFFFFF'),
+  };
 
   return (
     <section className="relative w-full min-h-screen flex items-center bg-black overflow-hidden">
-      {/* Background Image Layer */}
+      {/* Background Image Layer with Picture tag for Art Direction */}
       <div className="absolute inset-0 z-0">
-        <img
-          src={content.image}
-          alt="Hero Background"
-          className="w-full h-full object-cover opacity-70"
-        />
-        {/* Gradient Overlay for text readability */}
+        <picture>
+          {/* Если есть мобильное изображение, показываем его на экранах < 768px */}
+          {content.mobileImage && (
+            <source media="(max-width: 768px)" srcSet={content.mobileImage} />
+          )}
+          <img
+            src={content.image}
+            alt="Hero Background"
+            className="w-full h-full object-cover opacity-70"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent"></div>
       </div>
 
@@ -84,7 +104,10 @@ export function Hero() {
           <div className="pt-4">
             <Link
               to={content.ctaLink}
-              className="group inline-flex items-center space-x-4 border-2 border-white px-8 sm:px-10 py-4 text-xs sm:text-sm tracking-[0.2em] font-medium hover:bg-white hover:text-black transition-all duration-500 uppercase"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              style={buttonStyle}
+              className="group inline-flex items-center space-x-4 border-2 px-8 sm:px-10 py-4 text-xs sm:text-sm tracking-[0.2em] font-medium transition-all duration-500 uppercase"
             >
               <span>{content.ctaText}</span>
               <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-2 transition-transform duration-500" strokeWidth={2} />

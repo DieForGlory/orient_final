@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ProductCarousel } from '../components/ProductCarousel';
 import { ArrowRightIcon } from 'lucide-react';
 import { publicApi } from '../services/publicApi';
+
 interface Collection {
   id: string;
   name: string;
@@ -10,6 +11,7 @@ interface Collection {
   image: string;
   watchCount: number;
 }
+
 interface Product {
   id: string;
   name: string;
@@ -18,26 +20,26 @@ interface Product {
   image: string;
   isNew?: boolean;
 }
+
 export function CollectionDetail() {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [collection, setCollection] = useState<Collection | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+
   useEffect(() => {
     if (id) {
       fetchCollectionData(id);
     }
   }, [id]);
+
   const fetchCollectionData = async (collectionId: string) => {
     setLoading(true);
     try {
-      const [collectionData, productsData] = await Promise.all([publicApi.getCollection(collectionId), publicApi.getCollectionProducts(collectionId, {
-        limit: 50
-      })]);
+      const [collectionData, productsData] = await Promise.all([
+        publicApi.getCollection(collectionId),
+        publicApi.getCollectionProducts(collectionId, { limit: 50 })
+      ]);
       setCollection(collectionData);
       setProducts(productsData.data);
     } catch (error) {
@@ -46,13 +48,18 @@ export function CollectionDetail() {
       setLoading(false);
     }
   };
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
+    return (
+      <div className="flex items-center justify-center min-h-screen">
         <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-      </div>;
+      </div>
+    );
   }
+
   if (!collection) {
-    return <div className="w-full bg-white min-h-screen flex items-center justify-center">
+    return (
+      <div className="w-full bg-white min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold tracking-tight">
             КОЛЛЕКЦИЯ НЕ НАЙДЕНА
@@ -61,14 +68,26 @@ export function CollectionDetail() {
             Вернуться к коллекциям
           </Link>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="w-full bg-white">
+
+  return (
+    <div className="w-full bg-white">
       {/* Hero Section */}
       <section className="relative bg-black text-white min-h-[80vh] flex items-center">
         <div className="absolute inset-0">
-          <img src={collection.image} alt={collection.name} className="w-full h-full object-cover opacity-30" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/50"></div>
+          {/* ИЗМЕНЕНИЕ 1: Увеличена яркость картинки (было opacity-30, стало opacity-50) */}
+          <img
+            src={collection.image}
+            alt={collection.name}
+            className="w-full h-full object-cover opacity-50"
+          />
+
+          {/* ИЗМЕНЕНИЕ 2: Градиент стал легче */}
+          {/* Было: from-black via-black/90 to-black/50 */}
+          {/* Стало: from-black/90 via-black/40 to-transparent */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent"></div>
         </div>
 
         <div className="relative max-w-7xl mx-auto px-8 lg:px-16 w-full py-20">
@@ -98,7 +117,7 @@ export function CollectionDetail() {
               </h1>
             </div>
 
-            <p className="text-xl font-normal text-white/70 leading-relaxed">
+            <p className="text-xl font-normal text-white/90 leading-relaxed drop-shadow-sm">
               {collection.description}
             </p>
 
@@ -118,7 +137,8 @@ export function CollectionDetail() {
       </section>
 
       {/* Products Section */}
-      {products.length > 0 && <section className="py-32 bg-gray-50">
+      {products.length > 0 && (
+        <section className="py-32 bg-gray-50">
           <div className="max-w-7xl mx-auto px-8 lg:px-16">
             <div className="mb-16">
               <div className="flex items-center space-x-4 mb-6">
@@ -140,7 +160,8 @@ export function CollectionDetail() {
 
             <ProductCarousel products={products} />
           </div>
-        </section>}
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="bg-black text-white py-32">
@@ -158,5 +179,6 @@ export function CollectionDetail() {
           </Link>
         </div>
       </section>
-    </div>;
+    </div>
+  );
 }

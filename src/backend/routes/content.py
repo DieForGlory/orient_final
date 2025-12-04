@@ -48,13 +48,18 @@ async def get_hero_content(db: Session = Depends(get_db)):
             "subtitle": "Японское мастерство и точность в каждой детали",
             "image": "https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=800&q=80",
             "ctaText": "Смотреть коллекцию",
-            "ctaLink": "/catalog"
+            "ctaLink": "/catalog",
+            "buttonTextColor": hero.button_text_color or "#FFFFFF",
+            "buttonBgColor": hero.button_bg_color or "transparent",
+            "buttonHoverTextColor": hero.button_hover_text_color or "#000000",
+            "buttonHoverBgColor": hero.button_hover_bg_color or "#FFFFFF"
         }
     
     return {
         "title": hero.title,
         "subtitle": hero.subtitle,
         "image": hero.image,
+        "mobileImage": hero.mobile_image or "",
         "ctaText": hero.cta_text,
         "ctaLink": hero.cta_link
     }
@@ -188,6 +193,7 @@ async def get_hero_content_admin(
         "title": hero.title,
         "subtitle": hero.subtitle,
         "image": hero.image,
+        "mobileImage": hero.mobile_image or "",
         "ctaText": hero.cta_text,
         "ctaLink": hero.cta_link
     }
@@ -273,27 +279,33 @@ async def delete_history_event(
     db.commit()
 
     return {"message": "Event deleted"}
+
+
 @router.put("/api/admin/content/hero")
 async def update_hero_content(
-    content: HeroContent,
-    db: Session = Depends(get_db),
-    current_user = Depends(require_admin)
+        content: HeroContent,
+        db: Session = Depends(get_db),
+        current_user=Depends(require_admin)
 ):
-    """Update hero content (admin)"""
     hero = db.query(ContentHero).filter(ContentHero.id == 1).first()
-    
     if not hero:
         hero = ContentHero(id=1)
         db.add(hero)
-    
+
     hero.title = content.title
     hero.subtitle = content.subtitle
     hero.image = content.image
+    hero.mobile_image = content.mobileImage
     hero.cta_text = content.ctaText
     hero.cta_link = content.ctaLink
-    
+
+    # Сохраняем цвета
+    hero.button_text_color = content.buttonTextColor
+    hero.button_bg_color = content.buttonBgColor
+    hero.button_hover_text_color = content.buttonHoverTextColor
+    hero.button_hover_bg_color = content.buttonHoverBgColor
+
     db.commit()
-    
     return {"message": "Hero content updated"}
 
 @router.get("/api/admin/content/promo-banner")

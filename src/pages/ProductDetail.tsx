@@ -475,7 +475,7 @@ export function ProductDetail() {
                     Доставка
                   </p>
                   <p className="text-[10px] sm:text-xs text-black/60 mt-1 hidden sm:block">
-                    По всей России
+                    По Узбекистану
                   </p>
                 </div>
               </div>
@@ -488,7 +488,7 @@ export function ProductDetail() {
                     Гарантия
                   </p>
                   <p className="text-[10px] sm:text-xs text-black/60 mt-1 hidden sm:block">
-                    2 года
+                    1 год
                   </p>
                 </div>
               </div>
@@ -501,7 +501,7 @@ export function ProductDetail() {
                     Возврат
                   </p>
                   <p className="text-[10px] sm:text-xs text-black/60 mt-1 hidden sm:block">
-                    14 дней
+                    10 дней
                   </p>
                 </div>
               </div>

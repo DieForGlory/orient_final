@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 
 # Database URL
-DATABASE_URL = "sqlite:///./orient.db"
+DATABASE_URL = "sqlite:////var/www/orient/src/backend/orient.db"
 
 # Create engine
 engine = create_engine(
@@ -234,15 +234,24 @@ class ContentSiteLogo(Base):
     logo_dark_url = Column(String, nullable=True)  # For dark backgrounds
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
 class ContentHero(Base):
     __tablename__ = "content_hero"
-    
+
     id = Column(Integer, primary_key=True, default=1)
     title = Column(String, nullable=False)
     subtitle = Column(String, nullable=False)
     image = Column(String, nullable=False)
+    mobile_image = Column(String, default="")
     cta_text = Column(String, nullable=False)
     cta_link = Column(String, nullable=False)
+
+    # Новые поля для цветов
+    button_text_color = Column(String, default="#FFFFFF")
+    button_bg_color = Column(String, default="transparent")
+    button_hover_text_color = Column(String, default="#000000")
+    button_hover_bg_color = Column(String, default="#FFFFFF")
+
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class ContentPromoBanner(Base):
