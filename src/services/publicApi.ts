@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env?.VITE_API_URL || 'http://localhost:8000';
+
 class PublicApiService {
   private async request(endpoint: string, options: RequestInit = {}) {
     const headers: HeadersInit = {
@@ -14,7 +15,7 @@ class PublicApiService {
         const error = await response.json().catch(() => ({
           message: response.statusText
         }));
-        throw new Error(error.message || 'API Error');
+        throw new Error(error.detail || error.message || 'API Error');
       }
       return response.json();
     } catch (error) {
@@ -31,7 +32,7 @@ class PublicApiService {
     collection?: string;
     minPrice?: number;
     maxPrice?: number;
-    sort?: string; // <--- Добавили тип
+    sort?: string;
   }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -40,11 +41,12 @@ class PublicApiService {
     if (params?.collection) queryParams.append('collection', params.collection);
     if (params?.minPrice) queryParams.append('minPrice', params.minPrice.toString());
     if (params?.maxPrice) queryParams.append('maxPrice', params.maxPrice.toString());
-    if (params?.sort) queryParams.append('sort', params.sort); // <--- Передаем параметр
+    if (params?.sort) queryParams.append('sort', params.sort);
 
     const query = queryParams.toString();
     return this.request(`/api/products${query ? `?${query}` : ''}`);
   }
+
   getProduct(id: string) {
     return this.request(`/api/products/${id}`);
   }
@@ -58,9 +60,11 @@ class PublicApiService {
   getCollections() {
     return this.request('/api/collections');
   }
+
   getCollection(id: string) {
     return this.request(`/api/collections/${id}`);
   }
+
   getCollectionProducts(id: string, params?: {
     limit?: number;
   }) {
@@ -94,6 +98,10 @@ class PublicApiService {
     });
   }
 
+  // --- Promo Codes (ДОБАВЛЕНО) ---
+  validatePromoCode(code: string) {
+    return this.request(`/api/promocodes/validate?code=${encodeURIComponent(code)}`);
+  }
 
   // Content
   getSiteLogo() {
@@ -114,14 +122,17 @@ class PublicApiService {
   getBoutiqueContent() {
     return this.request('/api/content/boutique');
   }
-  // History (Added)
+
+  // History
   getHistoryEvents() {
     return this.request('/api/content/history');
   }
+
   // Policies
   getPolicy(slug: string) {
     return this.request(`/api/content/policy/${slug}`);
   }
+
   // Settings
   getCurrency() {
     return this.request('/api/settings/currency');
@@ -139,4 +150,5 @@ class PublicApiService {
     return this.request('/api/settings/social');
   }
 }
+
 export const publicApi = new PublicApiService();

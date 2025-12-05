@@ -6,7 +6,6 @@ import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { PaymeButton } from '../components/PaymeButton';
 
-// ... (Интерфейс FormData оставляем прежним)
 interface FormData {
   // Contact
   fullName: string;
@@ -74,10 +73,7 @@ export function Cart() {
     }
 
     // Если есть ограничения по коллекциям и коллекция товара не в списке
-    // (Приводим к нижнему регистру для надежности сравнения, если в базе так)
     if (applicable_collections.length > 0) {
-        // Предполагаем, что в базе collection.name хранится так же как item.collection
-        // Можно добавить нормализацию .toLowerCase() если нужно
         if (!applicable_collections.includes(item.collection)) return 0;
     }
 
@@ -124,7 +120,6 @@ export function Cart() {
     setPromoError('');
   };
 
-  // ... (validateForm и другие методы остаются прежними)
   const availablePaymentMethods = [
     { value: 'payme', label: 'Payme', desc: 'Оплата через Payme (UzCard, Humo, Visa, Mastercard)' },
     { value: 'click', label: 'Click', desc: 'Оплата через Click' },
@@ -214,10 +209,7 @@ export function Cart() {
     }
   };
 
-  // ... (Рендеринг пустой корзины и шагов оплаты оставляем как было)
-
   if (cartItems.length === 0 && currentStep !== 'payment') {
-     // ... (код пустой корзины)
      return (
       <div className="w-full bg-white min-h-screen">
         <div className="max-w-7xl mx-auto px-8 lg:px-16 py-32">
@@ -239,11 +231,9 @@ export function Cart() {
     );
   }
 
-  // --- RENDER ---
-
   return (
     <div className="w-full bg-white">
-      {/* Header Cart Steps ... */}
+      {/* Header Cart Steps */}
       <div className="bg-black text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
           <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
@@ -260,7 +250,6 @@ export function Cart() {
 
       {currentStep !== 'payment' && (
         <div className="border-b border-black/10">
-           {/* Steps Indicator Code */}
            <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-6 sm:py-8">
             <div className="flex items-center justify-center space-x-3 sm:space-x-4">
               <div className="flex items-center space-x-2 sm:space-x-3">
@@ -283,10 +272,7 @@ export function Cart() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-8 sm:py-12 lg:py-16">
         {currentStep === 'payment' ? (
-           // Payment View (PaymeButton, etc)
-           // ... (без изменений)
            <div className="max-w-2xl mx-auto">
-            {/* ...код шага оплаты... */}
              <div className="bg-white border-2 border-black/10 p-8 sm:p-12 space-y-8">
               <div className="text-center space-y-4">
                 <div className="w-20 h-20 mx-auto bg-green-50 rounded-full flex items-center justify-center">
@@ -456,7 +442,6 @@ export function Cart() {
           <form onSubmit={handleSubmit}>
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
               <div className="lg:col-span-2 space-y-12">
-                 {/* Форма контактов и доставки (без изменений, просто рендерим) */}
                  {/* Contact Information */}
                 <div className="space-y-6">
                   <div className="flex items-center space-x-4">
@@ -577,8 +562,43 @@ export function Cart() {
                     ))}
                   </div>
 
+                  {/* DUPLICATED PROMO CODE INPUT FOR CHECKOUT STEP */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-black/60">Промокод</label>
+                    {appliedPromo ? (
+                      <div className="flex items-center justify-between bg-green-100 border border-green-200 p-3 rounded">
+                        <div>
+                          <p className="font-bold text-green-800">{appliedPromo.code}</p>
+                          <p className="text-xs text-green-700">Скидка {appliedPromo.discount_percent}% применена</p>
+                        </div>
+                        <button onClick={handleRemovePromo} type="button" className="text-green-800 hover:text-green-950 p-1">
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={promoInput}
+                          onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                          placeholder="Введите код"
+                          className="flex-1 px-3 py-2 border-2 border-black/10 focus:border-[#C8102E] focus:outline-none uppercase"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyPromo}
+                          disabled={promoLoading || !promoInput}
+                          className="px-4 bg-black text-white text-sm font-bold uppercase hover:bg-[#C8102E] transition-colors disabled:opacity-50"
+                        >
+                          {promoLoading ? '...' : 'OK'}
+                        </button>
+                      </div>
+                    )}
+                    {promoError && <p className="text-xs text-red-600 font-medium">{promoError}</p>}
+                  </div>
+
                   {/* Итоговые цифры */}
-                  <div className="space-y-3">
+                  <div className="space-y-3 pt-4 border-t border-black/10">
                     <div className="flex justify-between text-sm">
                       <span className="text-black/60">Товары</span>
                       <span className="font-semibold">{formatPrice(subtotal)}</span>
