@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StoreIcon } from 'lucide-react';
+import { TicketIcon } from 'lucide-react';
 import { FileTextIcon, TruckIcon, ShieldCheckIcon, RotateCcwIcon, LockIcon } from 'lucide-react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboardIcon, PackageIcon, ShoppingBagIcon, UsersIcon, SettingsIcon, LogOutIcon, MenuIcon, XIcon, ImageIcon, TagIcon, FilterIcon, CalendarIcon } from 'lucide-react';
@@ -17,6 +18,10 @@ export function AdminLayout() {
     icon: LayoutDashboardIcon,
     label: 'Dashboard'
   }, {
+  path: '/admin/promocodes',
+  icon: TicketIcon,
+  label: 'Промокоды'
+  },{
     path: '/admin/boutique-content', // Новый путь
     icon: StoreIcon,
     label: 'Страница Бутик'

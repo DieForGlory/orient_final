@@ -215,3 +215,24 @@ class BookingResponse(BaseModel):
 
     class Config:
         from_attributes = True
+class PromoCodeBase(BaseModel):
+    code: str
+    discount_percent: float
+    valid_from: Optional[datetime] = None
+    valid_until: Optional[datetime] = None
+    applicable_products: List[str] = []
+    applicable_collections: List[str] = []
+    active: bool = True
+
+class PromoCodeCreate(PromoCodeBase):
+    pass
+
+class PromoCodeUpdate(PromoCodeBase):
+    pass
+
+class PromoCodeResponse(PromoCodeBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

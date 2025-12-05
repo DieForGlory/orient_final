@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 
 from database import init_db
-from routes import admin, products, collections, orders, content, upload, bookings, products_export, settings, payme
+from routes import admin, products, collections, orders, content, upload, bookings, products_export, settings, payme, promocodes
 
 # Load environment variables
 load_dotenv()
@@ -55,7 +55,7 @@ app.include_router(upload.router)
 app.include_router(bookings.router)
 app.include_router(settings.router)
 app.include_router(payme.router)
-
+app.include_router(promocodes.router)
 # Mount uploads directory AFTER routes
 upload_dir = os.getenv("UPLOAD_DIR", "uploads")
 if not os.path.exists(upload_dir):

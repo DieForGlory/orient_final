@@ -270,11 +270,59 @@ class ApiService {
   getPromoBanner() {
     return this.request('/api/admin/content/promo-banner');
   }
+  getPromoCodes() {
+    return this.request('/api/admin/promocodes');
+  }
+  getPromoCode(id: number) {
+    return this.request(`/api/admin/promocodes/${id}`);
+  }
+  createPromoCode(data: any) {
+    return this.request('/api/admin/promocodes', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+  updatePromoCode(id: number, data: any) {
+    return this.request(`/api/admin/promocodes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+  deletePromoCode(id: number) {
+    return this.request(`/api/admin/promocodes/${id}`, {
+      method: 'DELETE'
+    });
+  }
+  async exportPromoCodes() {
+    const token = localStorage.getItem('adminToken');
+    const response = await fetch(`${API_BASE_URL}/api/admin/promocodes/export/excel`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'promocodes.xlsx';
+    a.click();
+  }
+  async importPromoCodes(file: File) {
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetch(`${API_BASE_URL}/api/admin/promocodes/import/excel`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+  }
   updatePromoBanner(data: any) {
     return this.request('/api/admin/content/promo-banner', {
       method: 'PUT',
       body: JSON.stringify(data)
     });
+  }
+  validatePromoCode(code: string) {
+    return this.request(`/api/promocodes/validate?code=${encodeURIComponent(code)}`);
   }
   getFeaturedWatches() {
     return this.request('/api/admin/content/featured-watches');

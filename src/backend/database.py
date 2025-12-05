@@ -304,6 +304,22 @@ class Settings(Base):
     filter_config = Column(Text, nullable=True)  # Добавлено
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class PromoCode(Base):
+    __tablename__ = "promocodes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True, nullable=False)
+    discount_percent = Column(Float, nullable=False)
+    valid_from = Column(DateTime, default=datetime.utcnow)
+    valid_until = Column(DateTime, nullable=True)  # Если Null - бессрочный
+
+    # Списки ID храним как JSON массивы (Text)
+    applicable_products = Column(Text, default="[]")
+    applicable_collections = Column(Text, default="[]")
+
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 # Create all tables
 def init_db():
     Base.metadata.create_all(bind=engine)

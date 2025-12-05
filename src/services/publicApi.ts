@@ -94,6 +94,7 @@ class PublicApiService {
     });
   }
 
+
   // Content
   getSiteLogo() {
     return this.request('/api/content/logo');

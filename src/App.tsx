@@ -18,6 +18,8 @@ import { Warranty } from './pages/Warranty';
 import { BoutiqueContent } from './pages/admin/BoutiqueContent';
 import { PolicyEditor } from './pages/admin/PolicyEditor';
 // Admin imports
+import { AdminPromoCodes } from './pages/admin/PromoCodes';
+import { PromoCodeForm } from './pages/admin/PromoCodeForm';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
 import { AdminLogin } from './pages/admin/Login';
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -57,7 +59,9 @@ export function App() {
                   </main>
                   <Footer />
                 </div>} />
-
+            <Route path="promocodes" element={<AdminPromoCodes />} />
+            <Route path="promocodes/new" element={<PromoCodeForm />} />
+            <Route path="promocodes/:id/edit" element={<PromoCodeForm />} />
             <Route path="/collections" element={<div className="min-h-screen flex flex-col bg-white">
                   <Header />
                   <main className="flex-1">
