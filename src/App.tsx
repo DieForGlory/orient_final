@@ -135,15 +135,15 @@ export function App() {
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="promocodes" element={<AdminPromoCodes />} />
-            <Route path="promocodes/new" element={<PromoCodeForm />} />
-            <Route path="promocodes/:id/edit" element={<PromoCodeForm />} />
             <Route path="/admin" element={<ProtectedRoute>
                   <AdminLayout />
                 </ProtectedRoute>}>
               <Route path="privacy" element={<PolicyEditor slug="privacy" pageTitle="Политика конфиденциальности" />} />
               <Route path="warranty-edit" element={<PolicyEditor slug="warranty" pageTitle="Гарантия" />} />
               <Route path="return-edit" element={<PolicyEditor slug="return" pageTitle="Возврат и обмен" />} />
+              <Route path="promocodes" element={<AdminPromoCodes />} />
+              <Route path="promocodes/new" element={<PromoCodeForm />} />
+              <Route path="promocodes/:id/edit" element={<PromoCodeForm />} />
               <Route path="delivery-edit" element={<PolicyEditor slug="delivery" pageTitle="Доставка и оплата" />} />
               <Route index element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
