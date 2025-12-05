@@ -59,9 +59,7 @@ export function App() {
                   </main>
                   <Footer />
                 </div>} />
-            <Route path="promocodes" element={<AdminPromoCodes />} />
-            <Route path="promocodes/new" element={<PromoCodeForm />} />
-            <Route path="promocodes/:id/edit" element={<PromoCodeForm />} />
+
             <Route path="/collections" element={<div className="min-h-screen flex flex-col bg-white">
                   <Header />
                   <main className="flex-1">
@@ -137,7 +135,9 @@ export function App() {
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
-
+            <Route path="promocodes" element={<AdminPromoCodes />} />
+            <Route path="promocodes/new" element={<PromoCodeForm />} />
+            <Route path="promocodes/:id/edit" element={<PromoCodeForm />} />
             <Route path="/admin" element={<ProtectedRoute>
                   <AdminLayout />
                 </ProtectedRoute>}>
