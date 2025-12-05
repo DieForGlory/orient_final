@@ -5,26 +5,24 @@ Documentation: https://developer.help.paycom.uz/
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
 import base64
 import time
 import json
 import sys
+import os
 
-# Импортируем Transaction! Убедитесь, что добавили его в database.py
 from database import get_db, Order, Transaction
 from auth import require_admin
 
 router = APIRouter()
 
-# === НАСТРОЙКИ ===
-PAYME_MERCHANT_ID = "6928576d155c805660108939"
-PAYME_KEY = "Pt72p8hXXkWU#58MUxa&iWVm@254NF2#cqAr"
-PAYME_CHECKOUT_URL = "https://checkout.paycom.uz"
+# === НАСТРОЙКИ PAYME (Sandbox) ===
+PAYME_MERCHANT_ID = os.getenv("PAYME_MERCHANT_ID", "6928576d155c805660108939")
+PAYME_KEY = os.getenv("PAYME_TEST_KEY", "j1MhEdjYm9U7McURjDMt@y@WUA8Xq5C6HsX9")
+PAYME_CHECKOUT_URL = "https://test.paycom.uz"
 
 # --- Auth Helper ---
 def verify_payme_auth(auth_header: str) -> bool:
-    """Проверка авторизации Basic Auth (Боевой режим)"""
     try:
         if not auth_header: return False
         parts = auth_header.split()
@@ -35,13 +33,12 @@ def verify_payme_auth(auth_header: str) -> bool:
 
         merchant_id, key = decoded.split(":", 1)
 
-        # В боевом режиме логин должен СТРОГО совпадать с вашим Merchant ID
-        if merchant_id != PAYME_MERCHANT_ID or key != PAYME_KEY:
-            print(f"PAYME AUTH FAILED: {merchant_id}:{key}")  # Логируем попытку взлома
-            sys.stdout.flush()
-            return False
+        # Разрешаем "Paycom" как логин для песочницы
+        if (merchant_id == PAYME_MERCHANT_ID or merchant_id == "Paycom") and key == PAYME_KEY:
+            return True
 
-        return True
+        print(f"PAYME AUTH FAILED: {merchant_id}:{key}")
+        return False
     except:
         return False
 
@@ -61,7 +58,8 @@ async def init_payme_payment(data: PaymeInitRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Order not found")
 
     amount_tiyin = int(data.amount * 100)
-    params_str = f"m={PAYME_MERCHANT_ID};ac.order_id={data.order_id};a={amount_tiyin};c=https://orientwatch.uz/order/{data.order_id}"
+    site_url = os.getenv('SITE_URL', 'https://orientwatch.uz')
+    params_str = f"m={PAYME_MERCHANT_ID};ac.order_id={data.order_id};a={amount_tiyin};c={site_url}/order/{data.order_id}"
     params_base64 = base64.b64encode(params_str.encode()).decode()
 
     return PaymeInitResponse(checkout_url=f"{PAYME_CHECKOUT_URL}/{params_base64}")
@@ -100,16 +98,18 @@ def handle_check_perform(params, rid, db):
     order_id = params.get("account", {}).get("order_id")
     amount = params.get("amount")
 
+    if not order_id:
+        return {"error": {"code": -31050, "message": "Order ID missing"}, "id": rid}
+
     order = db.query(Order).filter(Order.order_number == order_id).first()
     if not order:
         return {"error": {"code": -31050, "message": "Order not found"}, "id": rid}
 
+    # Проверка суммы (допуск 10 тийин)
     if abs(int(amount) - int(order.total * 100)) > 10:
         return {"error": {"code": -31001, "message": "Wrong amount"}, "id": rid}
 
     if order.status == "completed":
-        # Проверяем, есть ли завершенная транзакция
-        # В реальной жизни тут надо проверить, полностью ли оплачен заказ
         return {"error": {"code": -31008, "message": "Order already paid"}, "id": rid}
 
     return {"result": {"allow": True}, "id": rid}
@@ -118,30 +118,38 @@ def handle_create(params, rid, db):
     trans_id = params.get("id")
     order_id = params.get("account", {}).get("order_id")
     time_ms = params.get("time")
+    amount = params.get("amount")
 
     # 1. Проверяем существование транзакции
     trans = db.query(Transaction).filter(Transaction.payme_trans_id == trans_id).first()
-
     if trans:
         # Идемпотентность
         if trans.state != 1:
              return {"error": {"code": -31008, "message": "Transaction already processed"}, "id": rid}
 
+        # Проверка таймаута (12 часов)
+        if int(time.time() * 1000) - trans.create_time > 43200000:
+             trans.state = -1
+             trans.reason = 4
+             db.commit()
+             return {"error": {"code": -31008, "message": "Transaction expired"}, "id": rid}
+
         return {
             "result": {
                 "create_time": trans.create_time,
-                "transaction": str(trans.id), # Payme просит вернуть их ID или наш внутренний. Обычно лучше их ID строкой.
+                "transaction": str(trans.id),
                 "state": 1
             },
             "id": rid
         }
 
-    # 2. Проверяем заказ
-    order = db.query(Order).filter(Order.order_number == order_id).first()
-    if not order:
-        return {"error": {"code": -31050, "message": "Order not found"}, "id": rid}
+    # 2. Проверяем заказ и СУММУ (используем логику CheckPerform)
+    # Это исправляет ошибку -31001 на этапе создания
+    check_res = handle_check_perform(params, rid, db)
+    if "error" in check_res:
+        return check_res
 
-    # 3. Проверяем, нет ли ДРУГОЙ активной транзакции по этому заказу
+    # 3. Блокировка параллельных транзакций
     active_tx = db.query(Transaction).filter(
         Transaction.order_id == order_id,
         Transaction.state == 1
@@ -151,27 +159,33 @@ def handle_create(params, rid, db):
         return {"error": {"code": -31050, "message": "Order has pending transaction"}, "id": rid}
 
     # 4. Создаем новую
-    new_tx = Transaction(
-        payme_trans_id=trans_id,
-        time=time_ms,
-        amount=params.get("amount"),
-        account=json.dumps(params.get("account")),
-        create_time=time_ms, # Важно: сохраняем время от Payme
-        state=1,
-        order_id=order_id
-    )
-    db.add(new_tx)
-    order.status = "processing"
-    db.commit()
+    try:
+        new_tx = Transaction(
+            payme_trans_id=trans_id,
+            time=time_ms,
+            amount=amount,
+            account=json.dumps(params.get("account")),
+            create_time=time_ms,
+            state=1,
+            order_id=order_id
+        )
+        db.add(new_tx)
 
-    return {
-        "result": {
-            "create_time": time_ms,
-            "transaction": str(new_tx.id), # Наш внутренний ID
-            "state": 1
-        },
-        "id": rid
-    }
+        order = db.query(Order).filter(Order.order_number == order_id).first()
+        if order: order.status = "processing"
+        db.commit()
+
+        return {
+            "result": {
+                "create_time": time_ms,
+                "transaction": str(new_tx.id),
+                "state": 1
+            },
+            "id": rid
+        }
+    except Exception as e:
+        print(f"Error creating: {e}")
+        return {"error": {"code": -31008, "message": "Internal error"}, "id": rid}
 
 def handle_perform(params, rid, db):
     trans_id = params.get("id")
@@ -181,18 +195,17 @@ def handle_perform(params, rid, db):
         return {"error": {"code": -31003, "message": "Transaction not found"}, "id": rid}
 
     if trans.state == 1:
-        # Выполняем
-        if int(time.time() * 1000) - trans.create_time > 43200000: # Таймаут 12 часов
+        if int(time.time() * 1000) - trans.create_time > 43200000:
              trans.state = -1
              trans.reason = 4
              db.commit()
              return {"error": {"code": -31008, "message": "Timeout"}, "id": rid}
 
+        # Выполняем
         trans.state = 2
         trans.perform_time = int(time.time() * 1000)
         db.commit()
 
-        # Обновляем заказ
         order = db.query(Order).filter(Order.order_number == trans.order_id).first()
         if order:
             order.status = "completed"
@@ -208,7 +221,6 @@ def handle_perform(params, rid, db):
         }
 
     if trans.state == 2:
-        # Идемпотентность
         return {
             "result": {
                 "transaction": str(trans.id),
@@ -229,15 +241,13 @@ def handle_cancel(params, rid, db):
         return {"error": {"code": -31003, "message": "Transaction not found"}, "id": rid}
 
     if trans.state == 1:
-        # Отмена созданной
         trans.state = -1
         trans.cancel_time = int(time.time() * 1000)
         trans.reason = reason
         db.commit()
 
-        # Освобождаем заказ
         order = db.query(Order).filter(Order.order_number == trans.order_id).first()
-        if order: order.status = "cancelled" # Или вернуть в pending?
+        if order: order.status = "cancelled"
         db.commit()
 
         return {
@@ -250,8 +260,6 @@ def handle_cancel(params, rid, db):
         }
 
     if trans.state == 2:
-        # Отмена завершенной (Refund)
-        # Проверяем, можно ли отменить (тут упрощенно - можно)
         trans.state = -2
         trans.cancel_time = int(time.time() * 1000)
         trans.reason = reason
@@ -270,7 +278,6 @@ def handle_cancel(params, rid, db):
             "id": rid
         }
 
-    # Уже отменена
     return {
         "result": {
             "transaction": str(trans.id),
@@ -297,4 +304,26 @@ def handle_check(params, rid, db):
             "reason": trans.reason
         },
         "id": rid
+    }
+
+# Admin endpoint
+@router.get("/api/admin/payme/status/{order_id}")
+async def get_payme_status(
+    order_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_admin)
+):
+    order = db.query(Order).filter(Order.order_number == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    tx = db.query(Transaction).filter(Transaction.order_id == order_id).first()
+
+    return {
+        "order_id": order_id,
+        "order_status": order.status,
+        "tx_data": {
+            "id": tx.payme_trans_id,
+            "state": tx.state
+        } if tx else None
     }
