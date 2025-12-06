@@ -70,6 +70,19 @@ class ProductBase(BaseModel):
     inStock: bool = True
     stockQuantity: int = 0
     sku: Optional[str] = None
+
+    # Новые фильтры
+    brand: Optional[str] = "Orient"
+    gender: Optional[str] = None
+    caseDiameter: Optional[float] = None
+    strapMaterial: Optional[str] = None
+
+    # Существующие фильтры (добавляем их в схему, чтобы API их принимал)
+    movement: Optional[str] = None
+    caseMaterial: Optional[str] = None
+    dialColor: Optional[str] = None
+    waterResistance: Optional[str] = None
+
     # SEO fields
     seoTitle: Optional[str] = None
     seoDescription: Optional[str] = None
@@ -78,8 +91,10 @@ class ProductBase(BaseModel):
     fbTitle: Optional[str] = None
     fbDescription: Optional[str] = None
 
+
 class ProductCreate(ProductBase):
     pass
+
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -92,11 +107,23 @@ class ProductUpdate(BaseModel):
     specs: Optional[Dict[str, str]] = None
     inStock: Optional[bool] = None
     stockQuantity: Optional[int] = None
-    # SEO fields
+
+    # Новые фильтры
+    brand: Optional[str] = None
+    gender: Optional[str] = None
+    caseDiameter: Optional[float] = None
+    strapMaterial: Optional[str] = None
+
+    # Существующие фильтры
+    movement: Optional[str] = None
+    caseMaterial: Optional[str] = None
+    dialColor: Optional[str] = None
+    waterResistance: Optional[str] = None
+
+    # SEO & FB
     seoTitle: Optional[str] = None
     seoDescription: Optional[str] = None
     seoKeywords: Optional[str] = None
-    # Facebook Open Graph fields
     fbTitle: Optional[str] = None
     fbDescription: Optional[str] = None
 

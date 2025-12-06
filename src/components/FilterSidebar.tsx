@@ -3,23 +3,35 @@ import { ChevronDownIcon } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 
-interface PriceRange {
+interface FilterRange {
   id: string;
   label: string;
   min: number;
   max: number;
 }
 
+interface FilterOptions {
+  brands: { label: string; value: string; count: number }[];
+  genders: { label: string; value: string; count: number }[];
+  strapMaterials: { label: string; value: string; count: number }[];
+  movements: { label: string; value: string; count: number }[];
+  dialColors: { label: string; value: string; count: number }[];
+  waterResistances: { label: string; value: string; count: number }[];
+}
+
 export function FilterSidebar() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [collections, setCollections] = useState<any[]>([]);
-  const [filters, setFilters] = useState<any>(null);
-  const [priceRanges, setPriceRanges] = useState<PriceRange[]>([]);
-  const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]); // Активные фильтры особенностей
 
-  const [priceMin, setPriceMin] = useState(searchParams.get('minPrice') || '');
-  const [priceMax, setPriceMax] = useState(searchParams.get('maxPrice') || '');
-  const [openSections, setOpenSections] = useState<string[]>(['КОЛЛЕКЦИЯ', 'ЦЕНА', 'ОСОБЕННОСТИ']);
+  const [filters, setFilters] = useState<FilterOptions | null>(null);
+  const [collections, setCollections] = useState<any[]>([]);
+  const [enabledFeatures, setEnabledFeatures] = useState<string[]>([]);
+
+  const [priceRanges, setPriceRanges] = useState<FilterRange[]>([]);
+  const [diameterRanges, setDiameterRanges] = useState<FilterRange[]>([]);
+
+  const [openSections, setOpenSections] = useState<string[]>([
+    'БРЕНД', 'КОЛЛЕКЦИЯ', 'ЦЕНА', 'ДИАМЕТР'
+  ]);
 
   useEffect(() => {
     loadData();
@@ -32,17 +44,27 @@ export function FilterSidebar() {
         publicApi.getFilters(),
         publicApi.getFilterSettings()
       ]);
+
       setCollections(colData);
       setFilters(filterData);
+
       setPriceRanges(settingsData.priceRanges || []);
+      setDiameterRanges(settingsData.diameterRanges || []);
       setEnabledFeatures(settingsData.enabledFeatures || []);
     } catch (error) {
-      console.error('Error loading filter data:', error);
+      console.error('Error loading filters:', error);
     }
   };
 
   const toggleSection = (title: string) => {
     setOpenSections(prev => prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]);
+  };
+
+  const handleFilterChange = (key: string, value: string, checked: boolean) => {
+    if (checked) searchParams.set(key, value);
+    else searchParams.delete(key);
+    searchParams.delete('page');
+    setSearchParams(searchParams);
   };
 
   const handleCollectionChange = (value: string, checked: boolean) => {
@@ -52,40 +74,32 @@ export function FilterSidebar() {
     setSearchParams(searchParams);
   };
 
-  const handleFilterChange = (key: string, value: string, checked: boolean) => {
-    // Для множественного выбора параметров (например, features)
-    if (key === 'features') {
-      const current = searchParams.getAll('features');
-      if (checked) {
-        current.push(value);
-      } else {
-        const index = current.indexOf(value);
-        if (index > -1) current.splice(index, 1);
-      }
-      searchParams.delete('features');
-      current.forEach(v => searchParams.append('features', v));
+  const handleFeatureChange = (feature: string, checked: boolean) => {
+    const currentFeatures = searchParams.getAll('features');
+    if (checked) {
+      currentFeatures.push(feature);
     } else {
-      // Одиночный выбор для остальных (механизм и т.д., как было)
-      if (checked) searchParams.set(key, value);
-      else searchParams.delete(key);
+      const index = currentFeatures.indexOf(feature);
+      if (index > -1) currentFeatures.splice(index, 1);
     }
 
+    searchParams.delete('features');
+    currentFeatures.forEach(f => searchParams.append('features', f));
     searchParams.delete('page');
     setSearchParams(searchParams);
   };
 
-  const handlePriceRangeChange = (min: number, max: number, checked: boolean) => {
+  const handleRangeChange = (paramPrefix: string, min: number, max: number, checked: boolean) => {
+    const minKey = `min${paramPrefix}`;
+    const maxKey = `max${paramPrefix}`;
+
     if (checked) {
-      setPriceMin(min.toString());
-      setPriceMax(max > 0 ? max.toString() : '');
-      searchParams.set('minPrice', min.toString());
-      if (max > 0) searchParams.set('maxPrice', max.toString());
-      else searchParams.delete('maxPrice');
+      searchParams.set(minKey, min.toString());
+      if (max > 0) searchParams.set(maxKey, max.toString());
+      else searchParams.delete(maxKey);
     } else {
-      setPriceMin('');
-      setPriceMax('');
-      searchParams.delete('minPrice');
-      searchParams.delete('maxPrice');
+      searchParams.delete(minKey);
+      searchParams.delete(maxKey);
     }
     searchParams.delete('page');
     setSearchParams(searchParams);
@@ -93,148 +107,217 @@ export function FilterSidebar() {
 
   const clearFilters = () => {
     setSearchParams({});
-    setPriceMin('');
-    setPriceMax('');
   };
 
-  const selectedCollection = searchParams.get('collection') || '';
-  const currentMin = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : null;
-  const currentFeatures = searchParams.getAll('features');
+  if (!filters) return <div>Загрузка фильтров...</div>;
 
   return (
     <aside className="w-full lg:w-80 bg-white">
-      <div className="pb-6 border-b border-black/10">
+      <div className="pb-6 border-b border-black/10 flex justify-between items-center">
         <h2 className="text-xl font-bold tracking-tight uppercase">Фильтры</h2>
+        <button onClick={clearFilters} className="text-xs text-[#C8102E] hover:underline uppercase font-bold">Сбросить</button>
       </div>
 
       <div className="divide-y divide-black/10">
-        {/* Collections */}
-        <div className="py-6">
-          <button onClick={() => toggleSection('КОЛЛЕКЦИЯ')} className="flex items-center justify-between w-full mb-4">
-            <h3 className="text-sm font-semibold tracking-wider uppercase">Коллекция</h3>
-            <ChevronDownIcon className={`w-4 h-4 transition-transform ${openSections.includes('КОЛЛЕКЦИЯ') ? 'rotate-180' : ''}`} strokeWidth={2} />
-          </button>
-          {openSections.includes('КОЛЛЕКЦИЯ') && (
-            <div className="space-y-3">
-              {collections.map(collection => (
-                <label key={collection.id} className="flex items-center space-x-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={selectedCollection === collection.name}
-                    onChange={e => handleCollectionChange(collection.name, e.target.checked)}
-                    className="w-4 h-4 border-2 border-black/20 text-[#C8102E] focus:ring-[#C8102E] cursor-pointer"
-                  />
-                  <span className="text-sm text-black/70 group-hover:text-black flex-1 font-medium">{collection.name}</span>
-                  {collection.watchCount > 0 && <span className="text-xs text-black/40">({collection.watchCount})</span>}
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
 
-        {/* Price Range - Styled as Checkboxes */}
-        <div className="py-6">
-          <button onClick={() => toggleSection('ЦЕНА')} className="flex items-center justify-between w-full mb-4">
-            <h3 className="text-sm font-semibold tracking-wider uppercase">Цена</h3>
-            <ChevronDownIcon className={`w-4 h-4 transition-transform ${openSections.includes('ЦЕНА') ? 'rotate-180' : ''}`} strokeWidth={2} />
-          </button>
+        {/* 1. БРЕНД */}
+        <FilterSection
+          title="БРЕНД"
+          isOpen={openSections.includes('БРЕНД')}
+          onToggle={() => toggleSection('БРЕНД')}
+        >
+          {filters.brands.map(opt => (
+            <CheckboxOption
+              key={opt.value}
+              label={opt.label}
+              count={opt.count}
+              checked={searchParams.get('brand') === opt.value}
+              onChange={(c) => handleFilterChange('brand', opt.value, c)}
+            />
+          ))}
+        </FilterSection>
 
-          {openSections.includes('ЦЕНА') && (
-            <div className="space-y-4">
-              {priceRanges.length > 0 && (
-                <div className="space-y-3 mb-4">
-                  {priceRanges.map(range => (
-                    <label key={range.id} className="flex items-center space-x-3 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={currentMin === range.min}
-                        onChange={e => handlePriceRangeChange(range.min, range.max, e.target.checked)}
-                        className="w-4 h-4 border-2 border-black/20 text-[#C8102E] focus:ring-[#C8102E] cursor-pointer"
-                      />
-                      <span className="text-sm text-black/70 group-hover:text-black flex-1 font-medium">{range.label}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
+        {/* 2. КОЛЛЕКЦИЯ */}
+        <FilterSection
+          title="КОЛЛЕКЦИЯ"
+          isOpen={openSections.includes('КОЛЛЕКЦИЯ')}
+          onToggle={() => toggleSection('КОЛЛЕКЦИЯ')}
+        >
+          {collections.map(col => (
+            <CheckboxOption
+              key={col.id}
+              label={col.name}
+              count={col.watchCount}
+              checked={searchParams.get('collection') === col.name}
+              onChange={(c) => handleCollectionChange(col.name, c)}
+            />
+          ))}
+        </FilterSection>
 
-              {/* Manual Input */}
-              <div className="flex items-center space-x-3 pt-2 border-t border-black/5">
-                <input type="number" placeholder="От" value={priceMin} onChange={e => {
-                  setPriceMin(e.target.value);
-                  const timer = setTimeout(() => {
-                    if (e.target.value) searchParams.set('minPrice', e.target.value);
-                    else searchParams.delete('minPrice');
-                    setSearchParams(searchParams);
-                  }, 500);
-                  return () => clearTimeout(timer);
-                }} className="w-full px-3 py-2 border-2 border-black/20 text-sm focus:outline-none focus:border-[#C8102E]" />
-                <span className="text-black/40">—</span>
-                <input type="number" placeholder="До" value={priceMax} onChange={e => {
-                  setPriceMax(e.target.value);
-                  const timer = setTimeout(() => {
-                    if (e.target.value) searchParams.set('maxPrice', e.target.value);
-                    else searchParams.delete('maxPrice');
-                    setSearchParams(searchParams);
-                  }, 500);
-                  return () => clearTimeout(timer);
-                }} className="w-full px-3 py-2 border-2 border-black/20 text-sm focus:outline-none focus:border-[#C8102E]" />
-              </div>
-            </div>
-          )}
-        </div>
+        {/* 3. ГЕНДЕР */}
+        <FilterSection
+          title="ПОЛ"
+          isOpen={openSections.includes('ПОЛ')}
+          onToggle={() => toggleSection('ПОЛ')}
+        >
+          {filters.genders.map(opt => (
+            <CheckboxOption
+              key={opt.value}
+              label={opt.label}
+              count={opt.count}
+              checked={searchParams.get('gender') === opt.value}
+              onChange={(c) => handleFilterChange('gender', opt.value, c)}
+            />
+          ))}
+        </FilterSection>
 
-        {/* Dynamic Features from Settings */}
+        {/* 4. ЦЕНА */}
+        <FilterSection
+          title="ЦЕНА"
+          isOpen={openSections.includes('ЦЕНА')}
+          onToggle={() => toggleSection('ЦЕНА')}
+        >
+          {priceRanges.map(range => (
+            <CheckboxOption
+              key={range.id}
+              label={range.label}
+              // ИСПРАВЛЕНИЕ: Добавлена проверка searchParams.has('minPrice')
+              checked={searchParams.has('minPrice') && Number(searchParams.get('minPrice')) === range.min}
+              onChange={(c) => handleRangeChange('Price', range.min, range.max, c)}
+            />
+          ))}
+        </FilterSection>
+
+        {/* 5. ДИАМЕТР КОРПУСА */}
+        <FilterSection
+          title="ДИАМЕТР КОРПУСА"
+          isOpen={openSections.includes('ДИАМЕТР')}
+          onToggle={() => toggleSection('ДИАМЕТР')}
+        >
+          {diameterRanges.map(range => (
+            <CheckboxOption
+              key={range.id}
+              label={range.label}
+              // ИСПРАВЛЕНИЕ: Добавлена проверка searchParams.has('minDiameter')
+              checked={searchParams.has('minDiameter') && Number(searchParams.get('minDiameter')) === range.min}
+              onChange={(c) => handleRangeChange('Diameter', range.min, range.max, c)}
+            />
+          ))}
+        </FilterSection>
+
+        {/* 6. ОСОБЕННОСТИ */}
         {enabledFeatures.length > 0 && (
-          <div className="py-6">
-            <button onClick={() => toggleSection('ОСОБЕННОСТИ')} className="flex items-center justify-between w-full mb-4">
-              <h3 className="text-sm font-semibold tracking-wider uppercase">Особенности</h3>
-              <ChevronDownIcon className={`w-4 h-4 transition-transform ${openSections.includes('ОСОБЕННОСТИ') ? 'rotate-180' : ''}`} strokeWidth={2} />
-            </button>
-            {openSections.includes('ОСОБЕННОСТИ') && (
-              <div className="space-y-3">
-                {enabledFeatures.map(feature => (
-                  <label key={feature} className="flex items-center space-x-3 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={currentFeatures.includes(feature)}
-                      onChange={e => handleFilterChange('features', feature, e.target.checked)}
-                      className="w-4 h-4 border-2 border-black/20 text-[#C8102E] focus:ring-[#C8102E] cursor-pointer"
-                    />
-                    <span className="text-sm text-black/70 group-hover:text-black flex-1 font-medium">{feature}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+          <FilterSection
+            title="ОСОБЕННОСТИ"
+            isOpen={openSections.includes('ОСОБЕННОСТИ')}
+            onToggle={() => toggleSection('ОСОБЕННОСТИ')}
+          >
+            {enabledFeatures.map(feature => (
+              <CheckboxOption
+                key={feature}
+                label={feature}
+                checked={searchParams.getAll('features').includes(feature)}
+                onChange={(c) => handleFeatureChange(feature, c)}
+              />
+            ))}
+          </FilterSection>
         )}
 
-        {/* Static Filters (Movement, etc.) */}
-        {filters?.movements?.length > 0 && (
-          <div className="py-6">
-            <button onClick={() => toggleSection('МЕХАНИЗМ')} className="flex items-center justify-between w-full mb-4">
-              <h3 className="text-sm font-semibold tracking-wider uppercase">Механизм</h3>
-              <ChevronDownIcon className={`w-4 h-4 transition-transform ${openSections.includes('МЕХАНИЗМ') ? 'rotate-180' : ''}`} strokeWidth={2} />
-            </button>
-            {openSections.includes('МЕХАНИЗМ') && (
-              <div className="space-y-3">
-                {filters.movements.map((option: any) => (
-                  <label key={option.value} className="flex items-center space-x-3 cursor-pointer group">
-                    <input type="checkbox" checked={searchParams.get('movement') === option.value} onChange={e => handleFilterChange('movement', option.value, e.target.checked)} className="w-4 h-4 border-2 border-black/20 text-[#C8102E] focus:ring-[#C8102E] cursor-pointer" />
-                    <span className="text-sm text-black/70 group-hover:text-black flex-1 font-medium">{option.label}</span>
-                    <span className="text-xs text-black/40">({option.count})</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+        {/* 7. ТИП МЕХАНИЗМА */}
+        <FilterSection
+          title="МЕХАНИЗМ"
+          isOpen={openSections.includes('МЕХАНИЗМ')}
+          onToggle={() => toggleSection('МЕХАНИЗМ')}
+        >
+          {filters.movements.map(opt => (
+            <CheckboxOption
+              key={opt.value}
+              label={opt.label}
+              count={opt.count}
+              checked={searchParams.get('movement') === opt.value}
+              onChange={(c) => handleFilterChange('movement', opt.value, c)}
+            />
+          ))}
+        </FilterSection>
 
-      <div className="pt-6">
-        <button onClick={clearFilters} className="text-sm text-[#C8102E] hover:underline font-medium tracking-wide uppercase">
-          Сбросить все фильтры
-        </button>
+        {/* 8. МАТЕРИАЛ БРАСЛЕТА */}
+        <FilterSection
+          title="МАТЕРИАЛ БРАСЛЕТА"
+          isOpen={openSections.includes('БРАСЛЕТ')}
+          onToggle={() => toggleSection('БРАСЛЕТ')}
+        >
+          {filters.strapMaterials.map(opt => (
+            <CheckboxOption
+              key={opt.value}
+              label={opt.label}
+              count={opt.count}
+              checked={searchParams.get('strapMaterial') === opt.value}
+              onChange={(c) => handleFilterChange('strapMaterial', opt.value, c)}
+            />
+          ))}
+        </FilterSection>
+
+        {/* 9. ЦВЕТ ЦИФЕРБЛАТА */}
+        <FilterSection
+          title="ЦВЕТ ЦИФЕРБЛАТА"
+          isOpen={openSections.includes('ЦИФЕРБЛАТ')}
+          onToggle={() => toggleSection('ЦИФЕРБЛАТ')}
+        >
+          <div className="grid grid-cols-2 gap-2">
+             {filters.dialColors.map(opt => (
+              <CheckboxOption
+                key={opt.value}
+                label={opt.label}
+                checked={searchParams.get('dialColor') === opt.value}
+                onChange={(c) => handleFilterChange('dialColor', opt.value, c)}
+              />
+            ))}
+          </div>
+        </FilterSection>
+
+        {/* 10. ВОДОНЕПРОНИЦАЕМОСТЬ */}
+        <FilterSection
+          title="ВОДОНЕПРОНИЦАЕМОСТЬ"
+          isOpen={openSections.includes('ВОДОЗАЩИТА')}
+          onToggle={() => toggleSection('ВОДОЗАЩИТА')}
+        >
+          {filters.waterResistances.map(opt => (
+            <CheckboxOption
+              key={opt.value}
+              label={opt.label}
+              count={opt.count}
+              checked={searchParams.get('waterResistance') === opt.value}
+              onChange={(c) => handleFilterChange('waterResistance', opt.value, c)}
+            />
+          ))}
+        </FilterSection>
+
       </div>
     </aside>
+  );
+}
+
+function FilterSection({ title, isOpen, onToggle, children }: any) {
+  return (
+    <div className="py-5">
+      <button onClick={onToggle} className="flex items-center justify-between w-full mb-4 group">
+        <h3 className="text-sm font-bold tracking-wider uppercase group-hover:text-[#C8102E] transition-colors">{title}</h3>
+        <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      {isOpen && <div className="space-y-3 animate-fade-in">{children}</div>}
+    </div>
+  );
+}
+
+function CheckboxOption({ label, count, checked, onChange }: any) {
+  return (
+    <label className="flex items-center space-x-3 cursor-pointer group">
+      <div className={`w-4 h-4 border-2 flex items-center justify-center transition-colors ${checked ? 'border-[#C8102E] bg-[#C8102E]' : 'border-black/20 group-hover:border-black/40'}`}>
+        {checked && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+      </div>
+      <input type="checkbox" className="hidden" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <span className={`text-sm flex-1 transition-colors ${checked ? 'text-black font-medium' : 'text-black/70 group-hover:text-black'}`}>{label}</span>
+      {count !== undefined && <span className="text-xs text-black/40">({count})</span>}
+    </label>
   );
 }

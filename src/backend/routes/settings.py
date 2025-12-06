@@ -40,7 +40,8 @@ class PriceRange(BaseModel):
 
 class FilterConfig(BaseModel):
     priceRanges: list[PriceRange]
-    enabledFeatures: list[str] = [] # <--- ДОБАВЛЕНО
+    diameterRanges: list[PriceRange] = []
+    enabledFeatures: list[str] = []
 
 class SettingsData(BaseModel):
     site: SiteInfo
@@ -55,25 +56,24 @@ async def get_settings(
     db: Session = Depends(get_db),
     current_user = Depends(require_admin)
 ):
-    """Get site settings (admin)"""
     settings = db.query(Settings).filter(Settings.id == 1).first()
-
     if not settings:
         settings = Settings(id=1)
         db.add(settings)
         db.commit()
         db.refresh(settings)
 
-    # Parse filter config
     try:
-        filter_config = json.loads(settings.filter_config) if settings.filter_config else {"priceRanges": [], "enabledFeatures": []}
-        # Убедимся, что ключ есть, даже если JSON старый
-        if "enabledFeatures" not in filter_config:
-            filter_config["enabledFeatures"] = []
+        filter_config = json.loads(settings.filter_config) if settings.filter_config else {}
+        # Гарантируем структуру
+        if "priceRanges" not in filter_config: filter_config["priceRanges"] = []
+        if "diameterRanges" not in filter_config: filter_config["diameterRanges"] = [] # <--- Check
+        if "enabledFeatures" not in filter_config: filter_config["enabledFeatures"] = []
     except:
-        filter_config = {"priceRanges": [], "enabledFeatures": []}
+        filter_config = {"priceRanges": [], "diameterRanges": [], "enabledFeatures": []}
 
     return {
+        # ... (rest of the return dict is same)
         "site": {
             "name": settings.site_name,
             "email": settings.site_email,
@@ -215,12 +215,12 @@ async def get_filter_settings(db: Session = Depends(get_db)):
     """Get public filter settings"""
     settings = db.query(Settings).filter(Settings.id == 1).first()
     if not settings or not settings.filter_config:
-        return {"priceRanges": [], "enabledFeatures": []}
+        return {"priceRanges": [], "diameterRanges": [], "enabledFeatures": []}
 
     try:
         data = json.loads(settings.filter_config)
-        if "enabledFeatures" not in data:
-            data["enabledFeatures"] = []
+        if "diameterRanges" not in data: data["diameterRanges"] = []
+        if "enabledFeatures" not in data: data["enabledFeatures"] = []
         return data
     except:
-        return {"priceRanges": [], "enabledFeatures": []}
+        return {"priceRanges": [], "diameterRanges": [], "enabledFeatures": []}

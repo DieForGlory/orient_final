@@ -17,6 +17,16 @@ interface Product {
   specs: Record<string, string>;
   inStock: boolean;
   sku: string;
+  // Новые поля из БД
+  brand?: string;
+  gender?: string;
+  caseDiameter?: number;
+  strapMaterial?: string;
+  movement?: string;
+  caseMaterial?: string;
+  dialColor?: string;
+  waterResistance?: string;
+  // SEO
   seoTitle?: string;
   seoDescription?: string;
   seoKeywords?: string;
@@ -89,7 +99,6 @@ export function ProductDetail() {
     };
   }, [product]);
 
-  // Формируем единый список изображений: Главное + Дополнительные (без дублей)
   const allImages = useMemo(() => {
     if (!product) return [];
     const imgs = [product.image];
@@ -103,7 +112,6 @@ export function ProductDetail() {
     return imgs;
   }, [product]);
 
-  // Сброс выбора при смене товара
   useEffect(() => {
     setSelectedImage(0);
   }, [id]);
@@ -169,7 +177,6 @@ export function ProductDetail() {
       image: product.image
     }, quantity);
 
-    // Animation logic
     const button = addToCartButtonRef.current;
     const image = imageRef.current;
 
@@ -226,9 +233,25 @@ export function ProductDetail() {
     );
   }
 
-  // Используем изображение из общего списка
   const currentImage = allImages[selectedImage] || product.image;
-  const specsArray = Object.entries(product.specs).map(([label, value]) => ({ label, value }));
+
+  // ОБЪЕДИНЯЕМ ВСЕ ХАРАКТЕРИСТИКИ
+  const mainSpecs = [
+    { label: 'Бренд', value: product.brand },
+    { label: 'Пол', value: product.gender },
+    { label: 'Механизм', value: product.movement },
+    { label: 'Диаметр корпуса', value: product.caseDiameter ? `${product.caseDiameter} мм` : null },
+    { label: 'Материал корпуса', value: product.caseMaterial },
+    { label: 'Материал браслета', value: product.strapMaterial },
+    { label: 'Цвет циферблата', value: product.dialColor },
+    { label: 'Водозащита', value: product.waterResistance },
+  ];
+
+  // Добавляем дополнительные specs из JSON (исключая дубликаты, если они там есть)
+  const additionalSpecs = Object.entries(product.specs || {}).map(([label, value]) => ({ label, value }));
+
+  // Фильтруем пустые значения
+  const allSpecs = [...mainSpecs, ...additionalSpecs].filter(item => item.value && item.value.toString().trim() !== '');
 
   return (
     <div className="w-full bg-white">
@@ -510,7 +533,7 @@ export function ProductDetail() {
         </div>
 
         {/* Specifications */}
-        {specsArray.length > 0 && (
+        {allSpecs.length > 0 && (
           <div className="mt-16 sm:mt-24 lg:mt-32 pt-12 sm:pt-16 border-t border-black/10">
             <div className="mb-8 sm:mb-12">
               <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
@@ -525,7 +548,7 @@ export function ProductDetail() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 sm:gap-x-16 gap-y-4 sm:gap-y-6">
-              {specsArray.map((spec, index) => (
+              {allSpecs.map((spec, index) => (
                 <div key={index} className="flex justify-between items-center py-4 sm:py-5 border-b border-black/10 gap-4">
                   <span className="text-xs sm:text-sm font-medium text-black/60">
                     {spec.label}

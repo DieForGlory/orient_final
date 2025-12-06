@@ -72,58 +72,75 @@ async def get_products_feed(db: Session = Depends(get_db)):
 
 @router.get("/api/products")
 async def get_products(
-    page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
-    search: Optional[str] = None,
-    collection: Optional[str] = None,
-    min_price: Optional[float] = Query(None, alias="minPrice"),
-    max_price: Optional[float] = Query(None, alias="maxPrice"),
-    movement: Optional[str] = None,
-    case_material: Optional[str] = Query(None, alias="caseMaterial"),
-    dial_color: Optional[str] = Query(None, alias="dialColor"),
-    water_resistance: Optional[str] = Query(None, alias="waterResistance"),
-    features: Optional[List[str]] = Query(None),
-    sort: str = Query('popular'), # <--- Добавили параметр сортировки
-    db: Session = Depends(get_db)
+        page: int = Query(1, ge=1),
+        limit: int = Query(20, ge=1, le=100),
+        search: Optional[str] = None,
+        collection: Optional[str] = None,
+
+        # Цены (Aliases обязательны!)
+        min_price: Optional[float] = Query(None, alias="minPrice"),
+        max_price: Optional[float] = Query(None, alias="maxPrice"),
+
+        # Новые фильтры (Aliases обязательны!)
+        brand: Optional[str] = None,
+        gender: Optional[str] = None,
+        min_diameter: Optional[float] = Query(None, alias="minDiameter"),
+        max_diameter: Optional[float] = Query(None, alias="maxDiameter"),
+        strap_material: Optional[str] = Query(None, alias="strapMaterial"),
+
+        # Существующие фильтры (Aliases обязательны, так как фронт шлет camelCase!)
+        movement: Optional[str] = None,  # movement совпадает, alias не критичен, но лучше оставить
+        case_material: Optional[str] = Query(None, alias="caseMaterial"),
+        dial_color: Optional[str] = Query(None, alias="dialColor"),
+        water_resistance: Optional[str] = Query(None, alias="waterResistance"),
+
+        features: Optional[List[str]] = Query(None),
+        sort: str = Query('popular'),
+        db: Session = Depends(get_db)
 ):
-    """Get all products with filters, sorting and pagination"""
+    """Get all products with filters"""
     query = db.query(Product)
 
-    # --- Filters ---
+    # --- Search & Collection ---
     if search:
-        query = query.filter(
-            or_(
-                Product.name.contains(search),
-                Product.sku.contains(search)
-            )
-        )
-
+        query = query.filter(or_(Product.name.contains(search), Product.sku.contains(search)))
     if collection:
         query = query.filter(Product.collection == collection)
 
+    # --- Price ---
     if min_price is not None:
         query = query.filter(Product.price >= min_price)
-
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
 
+    # --- New Filters ---
+    if brand:
+        query = query.filter(Product.brand == brand)
+    if gender:
+        query = query.filter(Product.gender == gender)
+    if min_diameter is not None:
+        query = query.filter(Product.case_diameter >= min_diameter)
+    if max_diameter is not None:
+        query = query.filter(Product.case_diameter <= max_diameter)
+    if strap_material:
+        query = query.filter(Product.strap_material == strap_material)
+
+    # --- Existing Filters ---
     if movement:
         query = query.filter(Product.movement == movement)
-
     if case_material:
         query = query.filter(Product.case_material == case_material)
-
     if dial_color:
         query = query.filter(Product.dial_color == dial_color)
-
     if water_resistance:
         query = query.filter(Product.water_resistance == water_resistance)
 
+    # --- Features ---
     if features:
         for feature in features:
             query = query.filter(Product.features.contains(feature))
 
-    # --- Sorting (НОВАЯ ЛОГИКА) ---
+    # --- Sorting ---
     if sort == 'price-asc':
         query = query.order_by(Product.price.asc())
     elif sort == 'price-desc':
@@ -133,21 +150,15 @@ async def get_products(
     elif sort == 'name':
         query = query.order_by(Product.name.asc())
     else:
-        # Default 'popular' - сначала Featured, потом новые
         query = query.order_by(Product.is_featured.desc(), Product.created_at.desc())
 
-    # Count total
+    # --- Pagination ---
     total = query.count()
-
-    # Pagination
     offset = (page - 1) * limit
     products = query.offset(offset).limit(limit).all()
 
-    # Convert to dict
-    data = [product.to_dict() for product in products]
-
     return {
-        "data": data,
+        "data": [product.to_dict() for product in products],
         "pagination": {
             "page": page,
             "limit": limit,
@@ -156,52 +167,28 @@ async def get_products(
         }
     }
 
+
 @router.get("/api/products/filters")
 async def get_available_filters(db: Session = Depends(get_db)):
-    """Get available filter options based on existing products"""
-    # Get unique values from products
-    movements = db.query(Product.movement).filter(Product.movement.isnot(None)).distinct().all()
-    materials = db.query(Product.case_material).filter(Product.case_material.isnot(None)).distinct().all()
-    colors = db.query(Product.dial_color).filter(Product.dial_color.isnot(None)).distinct().all()
-    water_res = db.query(Product.water_resistance).filter(Product.water_resistance.isnot(None)).distinct().all()
+    """Get available filter options"""
 
-    # Count products for each filter
-    def count_products(field, value):
-        return db.query(func.count(Product.id)).filter(field == value).scalar()
+    def get_options(column):
+        results = db.query(column, func.count(Product.id)) \
+            .filter(column.isnot(None)) \
+            .group_by(column) \
+            .all()
+        # Сортируем по алфавиту для удобства
+        opts = [{"label": str(r[0]), "value": str(r[0]), "count": r[1]} for r in results if r[0]]
+        return sorted(opts, key=lambda x: x['label'])
 
     return {
-        "movements": [
-            {
-                "label": m[0].replace("_", " ").title(),
-                "value": m[0],
-                "count": count_products(Product.movement, m[0])
-            }
-            for m in movements if m[0]
-        ],
-        "caseMaterials": [
-            {
-                "label": m[0].replace("_", " ").title(),
-                "value": m[0],
-                "count": count_products(Product.case_material, m[0])
-            }
-            for m in materials if m[0]
-        ],
-        "dialColors": [
-            {
-                "label": c[0].replace("_", " ").title(),
-                "value": c[0],
-                "count": count_products(Product.dial_color, c[0])
-            }
-            for c in colors if c[0]
-        ],
-        "waterResistance": [
-            {
-                "label": w[0],
-                "value": w[0],
-                "count": count_products(Product.water_resistance, w[0])
-            }
-            for w in water_res if w[0]
-        ]
+        "brands": get_options(Product.brand),
+        "genders": get_options(Product.gender),
+        "strapMaterials": get_options(Product.strap_material),
+        "movements": get_options(Product.movement),
+        "caseMaterials": get_options(Product.case_material),
+        "dialColors": get_options(Product.dial_color),
+        "waterResistances": get_options(Product.water_resistance)
     }
 
 # <--- НОВЫЙ ЭНДПОИНТ ДЛЯ АДМИНКИ (ПОЛУЧЕНИЕ ВСЕХ ОСОБЕННОСТЕЙ) --->
@@ -294,14 +281,12 @@ async def create_product(
     db: Session = Depends(get_db),
     current_user = Depends(require_admin)
 ):
-    """Create new product (admin)"""
     if product.sku:
         existing = db.query(Product).filter(Product.sku == product.sku).first()
         if existing:
             raise HTTPException(status_code=409, detail="SKU already exists")
 
     product_id = product.name.lower().replace(" ", "-").replace("&", "and")
-
     existing_id = db.query(Product).filter(Product.id == product_id).first()
     if existing_id:
         import uuid
@@ -320,21 +305,27 @@ async def create_product(
         in_stock=product.inStock,
         stock_quantity=product.stockQuantity,
         sku=product.sku,
-        movement=getattr(product, 'movement', None),
-        case_material=getattr(product, 'caseMaterial', None),
-        dial_color=getattr(product, 'dialColor', None),
-        water_resistance=getattr(product, 'waterResistance', None),
-        seo_title=getattr(product, 'seoTitle', None),
-        seo_description=getattr(product, 'seoDescription', None),
-        seo_keywords=getattr(product, 'seoKeywords', None),
-        fb_title=getattr(product, 'fbTitle', None),
-        fb_description=getattr(product, 'fbDescription', None),
+        # Новые поля
+        brand=product.brand,
+        gender=product.gender,
+        case_diameter=product.caseDiameter,
+        strap_material=product.strapMaterial,
+        # Существующие поля
+        movement=product.movement,
+        case_material=product.caseMaterial,
+        dial_color=product.dialColor,
+        water_resistance=product.waterResistance,
+        # SEO & FB
+        seo_title=product.seoTitle,
+        seo_description=product.seoDescription,
+        seo_keywords=product.seoKeywords,
+        fb_title=product.fbTitle,
+        fb_description=product.fbDescription,
     )
 
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
-
     return db_product.to_dict()
 
 @router.put("/api/admin/products/{product_id}")
@@ -344,47 +335,37 @@ async def update_product(
     db: Session = Depends(get_db),
     current_user = Depends(require_admin)
 ):
-    """Update product (admin)"""
     db_product = db.query(Product).filter(Product.id == product_id).first()
-
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
 
     update_data = product.dict(exclude_unset=True)
 
     for key, value in update_data.items():
-        if key == "images" and value is not None:
+        # Special mappings
+        if key in ["images", "features", "specs"] and value is not None:
             setattr(db_product, key, json.dumps(value))
-        elif key == "features" and value is not None:
-            setattr(db_product, key, json.dumps(value))
-        elif key == "specs" and value is not None:
-            setattr(db_product, key, json.dumps(value))
-        elif key == "inStock":
-            setattr(db_product, "in_stock", value)
-        elif key == "stockQuantity":
-            setattr(db_product, "stock_quantity", value)
-        elif key == "caseMaterial":
-            setattr(db_product, "case_material", value)
-        elif key == "dialColor":
-            setattr(db_product, "dial_color", value)
-        elif key == "waterResistance":
-            setattr(db_product, "water_resistance", value)
-        elif key == "seoTitle":
-            setattr(db_product, "seo_title", value)
-        elif key == "seoDescription":
-            setattr(db_product, "seo_description", value)
-        elif key == "seoKeywords":
-            setattr(db_product, "seo_keywords", value)
-        elif key == "fbTitle":
-            setattr(db_product, "fb_title", value)
-        elif key == "fbDescription":
-            setattr(db_product, "fb_description", value)
+        # CamelCase to snake_case mappings
+        elif key == "inStock": setattr(db_product, "in_stock", value)
+        elif key == "stockQuantity": setattr(db_product, "stock_quantity", value)
+        # New filters
+        elif key == "caseDiameter": setattr(db_product, "case_diameter", value)
+        elif key == "strapMaterial": setattr(db_product, "strap_material", value)
+        # Existing filters
+        elif key == "caseMaterial": setattr(db_product, "case_material", value)
+        elif key == "dialColor": setattr(db_product, "dial_color", value)
+        elif key == "waterResistance": setattr(db_product, "water_resistance", value)
+        # SEO & FB
+        elif key == "seoTitle": setattr(db_product, "seo_title", value)
+        elif key == "seoDescription": setattr(db_product, "seo_description", value)
+        elif key == "seoKeywords": setattr(db_product, "seo_keywords", value)
+        elif key == "fbTitle": setattr(db_product, "fb_title", value)
+        elif key == "fbDescription": setattr(db_product, "fb_description", value)
         else:
             setattr(db_product, key, value)
 
     db.commit()
     db.refresh(db_product)
-
     return db_product.to_dict()
 
 @router.delete("/api/admin/products/{product_id}")

@@ -62,10 +62,15 @@ class Product(Base):
     is_featured = Column(Boolean, default=False)
     
     # Filter fields
-    movement = Column(String, index=True)  # automatic, mechanical, quartz
-    case_material = Column(String, index=True)  # steel, titanium, gold
-    dial_color = Column(String, index=True)  # black, blue, white, green, etc
-    water_resistance = Column(String, index=True)  # 200m, 100m, 50m
+    brand = Column(String, index=True, default="Orient")  # NEW
+    gender = Column(String, index=True)  # NEW
+    case_diameter = Column(Float, index=True)  # NEW
+    strap_material = Column(String, index=True)  # NEW
+
+    movement = Column(String, index=True)
+    case_material = Column(String, index=True)
+    dial_color = Column(String, index=True)
+    water_resistance = Column(String, index=True)
     
     # SEO fields
     seo_title = Column(String, nullable=True)
@@ -94,6 +99,10 @@ class Product(Base):
             "stockQuantity": self.stock_quantity,
             "sku": self.sku,
             "isFeatured": self.is_featured,
+            "brand": self.brand,
+            "gender": self.gender,
+            "caseDiameter": self.case_diameter,
+            "strapMaterial": self.strap_material,
             "movement": self.movement,
             "caseMaterial": self.case_material,
             "dialColor": self.dial_color,

@@ -33,6 +33,17 @@ class PublicApiService {
     minPrice?: number;
     maxPrice?: number;
     sort?: string;
+    // Новые фильтры
+    brand?: string;
+    gender?: string;
+    minDiameter?: number;
+    maxDiameter?: number;
+    strapMaterial?: string;
+    movement?: string;
+    caseMaterial?: string;
+    dialColor?: string;
+    waterResistance?: string;
+    features?: string[]; // <--- ДОБАВЛЕНО: Массив строк
   }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
@@ -42,6 +53,24 @@ class PublicApiService {
     if (params?.minPrice) queryParams.append('minPrice', params.minPrice.toString());
     if (params?.maxPrice) queryParams.append('maxPrice', params.maxPrice.toString());
     if (params?.sort) queryParams.append('sort', params.sort);
+
+    // Одиночные фильтры
+    if (params?.brand) queryParams.append('brand', params.brand);
+    if (params?.gender) queryParams.append('gender', params.gender);
+    if (params?.minDiameter) queryParams.append('minDiameter', params.minDiameter.toString());
+    if (params?.maxDiameter) queryParams.append('maxDiameter', params.maxDiameter.toString());
+    if (params?.strapMaterial) queryParams.append('strapMaterial', params.strapMaterial);
+    if (params?.movement) queryParams.append('movement', params.movement);
+    if (params?.caseMaterial) queryParams.append('caseMaterial', params.caseMaterial);
+    if (params?.dialColor) queryParams.append('dialColor', params.dialColor);
+    if (params?.waterResistance) queryParams.append('waterResistance', params.waterResistance);
+
+    // --- ИСПРАВЛЕНИЕ: Обработка массива features ---
+    if (params?.features && Array.isArray(params.features)) {
+      params.features.forEach(feature => {
+        queryParams.append('features', feature);
+      });
+    }
 
     const query = queryParams.toString();
     return this.request(`/api/products${query ? `?${query}` : ''}`);
@@ -65,9 +94,7 @@ class PublicApiService {
     return this.request(`/api/collections/${id}`);
   }
 
-  getCollectionProducts(id: string, params?: {
-    limit?: number;
-  }) {
+  getCollectionProducts(id: string, params?: { limit?: number }) {
     const queryParams = new URLSearchParams();
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     const query = queryParams.toString();
@@ -83,72 +110,32 @@ class PublicApiService {
   }
 
   // Bookings
-  createBooking(data: {
-    name: string;
-    phone: string;
-    email: string;
-    date: string;
-    time: string;
-    message?: string;
-    boutique?: string;
-  }) {
+  createBooking(data: any) {
     return this.request('/api/bookings', {
       method: 'POST',
       body: JSON.stringify(data)
     });
   }
 
-  // --- Promo Codes (ДОБАВЛЕНО) ---
+  // Promo Codes
   validatePromoCode(code: string) {
     return this.request(`/api/promocodes/validate?code=${encodeURIComponent(code)}`);
   }
 
-  // Content
-  getSiteLogo() {
-    return this.request('/api/content/logo');
-  }
-  getHeroContent() {
-    return this.request('/api/content/hero');
-  }
-  getPromoBanner() {
-    return this.request('/api/content/promo-banner');
-  }
-  getFeaturedWatches() {
-    return this.request('/api/content/featured-watches');
-  }
-  getHeritageSection() {
-    return this.request('/api/content/heritage');
-  }
-  getBoutiqueContent() {
-    return this.request('/api/content/boutique');
-  }
-
-  // History
-  getHistoryEvents() {
-    return this.request('/api/content/history');
-  }
-
-  // Policies
-  getPolicy(slug: string) {
-    return this.request(`/api/content/policy/${slug}`);
-  }
-
-  // Settings
-  getCurrency() {
-    return this.request('/api/settings/currency');
-  }
-  getFilterSettings() {
-    return this.request('/api/settings/filters');
-  }
-  getShippingInfo() {
-    return this.request('/api/settings/shipping');
-  }
-  getSiteInfo() {
-    return this.request('/api/settings/site');
-  }
-  getSocialLinks() {
-    return this.request('/api/settings/social');
-  }
+  // Content & Settings
+  getSiteLogo() { return this.request('/api/content/logo'); }
+  getHeroContent() { return this.request('/api/content/hero'); }
+  getPromoBanner() { return this.request('/api/content/promo-banner'); }
+  getFeaturedWatches() { return this.request('/api/content/featured-watches'); }
+  getHeritageSection() { return this.request('/api/content/heritage'); }
+  getBoutiqueContent() { return this.request('/api/content/boutique'); }
+  getHistoryEvents() { return this.request('/api/content/history'); }
+  getPolicy(slug: string) { return this.request(`/api/content/policy/${slug}`); }
+  getCurrency() { return this.request('/api/settings/currency'); }
+  getFilterSettings() { return this.request('/api/settings/filters'); }
+  getShippingInfo() { return this.request('/api/settings/shipping'); }
+  getSiteInfo() { return this.request('/api/settings/site'); }
+  getSocialLinks() { return this.request('/api/settings/social'); }
 }
 
 export const publicApi = new PublicApiService();
