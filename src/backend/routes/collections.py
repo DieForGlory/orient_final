@@ -94,20 +94,15 @@ async def get_collection_products(
 
 # Admin endpoints
 @router.get("/api/admin/collections")
+@router.get("/api/admin/collections")
 async def get_all_collections_admin(
     db: Session = Depends(get_db),
     current_user = Depends(require_admin)
 ):
-    """Get all collections including inactive (admin)"""
     collections = db.query(Collection).all()
-    
     result = []
     for col in collections:
-        # Count products in collection
-        watch_count = db.query(Product).filter(
-            Product.collection == col.name
-        ).count()
-        
+        watch_count = db.query(Product).filter(Product.collection == col.name).count()
         result.append({
             "id": col.id,
             "name": col.name,
@@ -116,9 +111,9 @@ async def get_all_collections_admin(
             "watchCount": watch_count,
             "number": col.number,
             "active": col.active,
+            "brand": col.brand, # <--- ДОБАВЛЕНО
             "createdAt": col.created_at.isoformat() if col.created_at else None
         })
-    
     return result
 
 @router.get("/api/admin/collections/{collection_id}")
@@ -146,6 +141,7 @@ async def get_collection_admin(
         "watchCount": watch_count,
         "number": collection.number,
         "active": collection.active,
+        "brand": collection.brand,
         "createdAt": collection.created_at.isoformat() if collection.created_at else None
     }
 

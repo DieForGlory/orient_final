@@ -87,7 +87,6 @@ export function ProductDetail() {
     updateMetaTag('description', product.seoDescription || product.description);
     updateMetaTag('keywords', product.seoKeywords || `${product.collection}, Orient, часы`);
 
-    // OG Tags
     updateMetaTag('og:title', product.fbTitle || product.seoTitle || product.name, 'og:title');
     updateMetaTag('og:description', product.fbDescription || product.seoDescription || product.description, 'og:description');
     updateMetaTag('og:image', product.image, 'og:image');
@@ -244,10 +243,11 @@ export function ProductDetail() {
     { label: 'Материал корпуса', value: product.caseMaterial },
     { label: 'Материал браслета', value: product.strapMaterial },
     { label: 'Цвет циферблата', value: product.dialColor },
-    { label: 'Водозащита', value: product.waterResistance },
+    // ИСПРАВЛЕНИЕ: Заменили "Водозащита" на "Водонепроницаемость корпуса"
+    { label: 'Водонепроницаемость корпуса', value: product.waterResistance },
   ];
 
-  // Добавляем дополнительные specs из JSON (исключая дубликаты, если они там есть)
+  // Добавляем дополнительные specs из JSON
   const additionalSpecs = Object.entries(product.specs || {}).map(([label, value]) => ({ label, value }));
 
   // Фильтруем пустые значения
@@ -309,7 +309,7 @@ export function ProductDetail() {
                       top: `${magnifierPosition.y - 100}px`,
                       backgroundImage: `url(${currentImage})`,
                       backgroundPosition: `${imagePosition.x}% ${imagePosition.y}%`,
-                      backgroundSize: '600%', // Зум настроен на 600%
+                      backgroundSize: '600%',
                       backgroundRepeat: 'no-repeat'
                     }}
                   >

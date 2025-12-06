@@ -176,15 +176,17 @@ class ContentHistoryEvent(Base):
     order = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
 class Collection(Base):
     __tablename__ = "collections"
-    
+
     id = Column(String, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(Text)
     image = Column(String)
     number = Column(String)
     active = Column(Boolean, default=True)
+    brand = Column(String, default="Orient")  # <--- НОВОЕ ПОЛЕ
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class FilterOption(Base):

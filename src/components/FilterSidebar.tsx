@@ -181,7 +181,6 @@ export function FilterSidebar() {
             <CheckboxOption
               key={range.id}
               label={range.label}
-              // ИСПРАВЛЕНИЕ: Добавлена проверка searchParams.has('minPrice')
               checked={searchParams.has('minPrice') && Number(searchParams.get('minPrice')) === range.min}
               onChange={(c) => handleRangeChange('Price', range.min, range.max, c)}
             />
@@ -198,7 +197,6 @@ export function FilterSidebar() {
             <CheckboxOption
               key={range.id}
               label={range.label}
-              // ИСПРАВЛЕНИЕ: Добавлена проверка searchParams.has('minDiameter')
               checked={searchParams.has('minDiameter') && Number(searchParams.get('minDiameter')) === range.min}
               onChange={(c) => handleRangeChange('Diameter', range.min, range.max, c)}
             />
@@ -275,9 +273,9 @@ export function FilterSidebar() {
           </div>
         </FilterSection>
 
-        {/* 10. ВОДОНЕПРОНИЦАЕМОСТЬ */}
+        {/* 10. ВОДОНЕПРОНИЦАЕМОСТЬ КОРПУСА */}
         <FilterSection
-          title="ВОДОНЕПРОНИЦАЕМОСТЬ"
+          title="ВОДОНЕПРОНИЦАЕМОСТЬ КОРПУСА"
           isOpen={openSections.includes('ВОДОЗАЩИТА')}
           onToggle={() => toggleSection('ВОДОЗАЩИТА')}
         >

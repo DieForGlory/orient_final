@@ -135,6 +135,7 @@ class CollectionBase(BaseModel):
     image: Optional[str] = None
     number: Optional[str] = None
     active: bool = True
+    brand: str = "Orient"
 
 class CollectionCreate(CollectionBase):
     pass
@@ -145,6 +146,7 @@ class CollectionUpdate(BaseModel):
     image: Optional[str] = None
     number: Optional[str] = None
     active: Optional[bool] = None
+    brand: Optional[str] = None
 
 # Order schemas
 class OrderItem(BaseModel):
