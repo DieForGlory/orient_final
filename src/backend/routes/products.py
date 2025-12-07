@@ -228,6 +228,7 @@ async def get_all_products_admin(
     limit: int = Query(100, ge=1, le=1000),
     search: Optional[str] = None,
     collection: Optional[str] = None,
+    brand: Optional[str] = None,  # <--- ДОБАВЛЕНО
     db: Session = Depends(get_db),
     current_user = Depends(require_admin)
 ):
@@ -244,6 +245,13 @@ async def get_all_products_admin(
 
     if collection:
         query = query.filter(Product.collection == collection)
+
+    # <--- ДОБАВЛЕНО: Фильтрация по бренду
+    if brand:
+        query = query.filter(Product.brand == brand)
+
+    # Сортировка по дате создания (новые сверху)
+    query = query.order_by(Product.created_at.desc())
 
     total = query.count()
     offset = (page - 1) * limit

@@ -14,39 +14,63 @@ interface SearchResult {
   image: string;
 }
 
+// Интерфейс для баннера
+interface PromoBanner {
+  text: string;
+  code: string;
+  active: boolean;
+  backgroundColor: string;
+  textColor: string;
+  highlightColor: string;
+}
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Новые состояния для поиска
+  // Состояния для поиска
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const [logo, setLogo] = useState<{
-    logoUrl: string;
-    logoDarkUrl: string | null;
-  } | null>(null);
-
-  // Добавляем состояние загрузки логотипа
+  // Состояния данных
+  const [logo, setLogo] = useState<{ logoUrl: string; logoDarkUrl: string | null } | null>(null);
   const [logoLoading, setLogoLoading] = useState(true);
+  const [promoBanner, setPromoBanner] = useState<PromoBanner | null>(null); // <--- Добавлено состояние баннера
 
   const { totalItems } = useCart();
   const { formatPrice } = useSettings();
 
   useEffect(() => {
-    loadLogo();
+    loadData();
   }, []);
 
-  // Эффект для живого поиска с задержкой (debounce)
+  const loadData = async () => {
+    // Загружаем логотип и баннер параллельно
+    try {
+      const [logoData, bannerData] = await Promise.all([
+        publicApi.getSiteLogo().catch(() => null),
+        publicApi.getPromoBanner().catch(() => null)
+      ]);
+
+      setLogo(logoData);
+      setPromoBanner(bannerData);
+    } catch (error) {
+      console.error('Error loading header data:', error);
+    } finally {
+      setLogoLoading(false);
+    }
+  };
+
+  // Эффект для живого поиска
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (searchQuery.trim().length > 1) { // Искать только если введено больше 1 символа
+      if (searchQuery.trim().length > 1) {
         setIsSearching(true);
         try {
           const response = await publicApi.getProducts({
             search: searchQuery,
-            limit: 6 // Ограничиваем кол-во результатов в выпадающем списке
+            limit: 6
           });
           setSearchResults(response.data);
         } catch (error) {
@@ -57,22 +81,10 @@ export function Header() {
       } else {
         setSearchResults([]);
       }
-    }, 500); // Задержка 500мс
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  const loadLogo = async () => {
-    try {
-      const data = await publicApi.getSiteLogo();
-      setLogo(data);
-    } catch (error) {
-      console.error('Error loading logo:', error);
-    } finally {
-      // Отключаем загрузку в любом случае
-      setLogoLoading(false);
-    }
-  };
 
   const closeSearch = () => {
     setSearchOpen(false);
@@ -82,14 +94,22 @@ export function Header() {
 
   return (
     <>
-      {/* Promo Banner */}
-      <div className="bg-black text-white text-center py-2 sm:py-3 px-4 overflow-hidden relative">
-        <p className="text-[10px] sm:text-xs tracking-[0.15em] sm:tracking-[0.2em] font-medium animate-fade-in">
-          СКИДКА 15% НА ВСЕ ЧАСЫ С КОДОМ{' '}
-          <span className="text-[#C8102E]">PRE2025</span>
-        </p>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C8102E] to-transparent opacity-30"></div>
-      </div>
+      {/* Promo Banner (ДИНАМИЧЕСКИЙ) */}
+      {promoBanner && promoBanner.active && (
+        <div
+          className="text-center py-2 sm:py-3 px-4 overflow-hidden relative transition-colors duration-300"
+          style={{ backgroundColor: promoBanner.backgroundColor, color: promoBanner.textColor }}
+        >
+          <p className="text-[10px] sm:text-xs tracking-[0.15em] sm:tracking-[0.2em] font-medium animate-fade-in">
+            {promoBanner.text}{' '}
+            <span style={{ color: promoBanner.highlightColor }}>{promoBanner.code}</span>
+          </p>
+          <div
+            className="absolute bottom-0 left-0 right-0 h-px opacity-30"
+            style={{ background: `linear-gradient(to right, transparent, ${promoBanner.highlightColor}, transparent)` }}
+          ></div>
+        </div>
+      )}
 
       {/* Main Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
@@ -103,7 +123,6 @@ export function Header() {
             {/* Logo */}
             <Link to="/" className="flex-shrink-0 group">
               {logoLoading ? (
-                // Скелетон загрузки (серый прямоугольник)
                 <div className="h-8 sm:h-10 lg:h-12 w-24 sm:w-32 bg-gray-100 animate-pulse rounded"></div>
               ) : logo?.logoUrl ? (
                 <img
@@ -195,7 +214,7 @@ export function Header() {
           </>}
       </header>
 
-      {/* Search Modal */}
+      {/* Search Modal (Оставлен без изменений) */}
       {searchOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-fade-in">
           <div className="absolute inset-x-0 top-0 bg-white shadow-2xl animate-slide-down">

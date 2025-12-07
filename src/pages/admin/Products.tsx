@@ -13,13 +13,13 @@ interface Product {
   inStock: boolean;
   createdAt: string;
   sku: string;
-  brand?: string; // Добавлено для отображения
+  brand?: string;
 }
 
 interface Collection {
   id: string;
   name: string;
-  brand?: string; // Добавлено
+  brand?: string;
 }
 
 export function AdminProducts() {
@@ -31,7 +31,7 @@ export function AdminProducts() {
 
   const currentPage = Number(searchParams.get('page')) || 1;
   const filterCollection = searchParams.get('collection') || 'all';
-  const filterBrand = searchParams.get('brand') || 'all'; // Новый фильтр
+  const filterBrand = searchParams.get('brand') || 'all';
   const urlSearchQuery = searchParams.get('search') || '';
 
   const [localSearch, setLocalSearch] = useState(urlSearchQuery);
@@ -71,7 +71,7 @@ export function AdminProducts() {
 
   useEffect(() => {
     fetchProducts();
-  }, [currentPage, filterCollection, filterBrand, urlSearchQuery]); // Добавлен filterBrand
+  }, [currentPage, filterCollection, filterBrand, urlSearchQuery]);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -83,7 +83,7 @@ export function AdminProducts() {
 
       if (urlSearchQuery) params.search = urlSearchQuery;
       if (filterCollection !== 'all') params.collection = filterCollection;
-      if (filterBrand !== 'all') params.brand = filterBrand; // Передаем бренд
+      if (filterBrand !== 'all') params.brand = filterBrand;
 
       const response = await api.getProducts(params);
 
@@ -113,7 +113,6 @@ export function AdminProducts() {
     }
   };
 
-  // Обработчик смены бренда
   const handleBrandChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newBrand = e.target.value;
     setSearchParams(prev => {
@@ -122,7 +121,6 @@ export function AdminProducts() {
         newParams.delete('brand');
       } else {
         newParams.set('brand', newBrand);
-        // Сбрасываем коллекцию при смене бренда, так как текущая коллекция может не принадлежать новому бренду
         newParams.delete('collection');
       }
       newParams.set('page', '1');
@@ -141,16 +139,26 @@ export function AdminProducts() {
     });
   };
 
-  // ... (handleDelete, handleExport, handleImport - без изменений)
-  // Вставлю их сокращенно для полноты файла
   const handleDelete = async (id: string) => {
     if (!confirm('Вы уверены?')) return;
     await api.deleteProduct(id);
     fetchProducts();
   };
-  const handleExport = async () => { setExporting(true); await api.exportProducts(); setExporting(false); };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await api.exportProducts();
+    } catch (e) {
+      console.error(e);
+      alert('Ошибка экспорта');
+    }
+    setExporting(false);
+  };
+
   const handleImportClick = () => fileInputRef.current?.click();
-  const handleImport = async (e: any) => { /* ...тот же код... */
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
       setImporting(true);
@@ -158,14 +166,26 @@ export function AdminProducts() {
         await api.importProducts(file);
         alert('Импорт завершен!');
         fetchProducts();
-      } catch (e) { alert('Ошибка импорта'); }
-      setImporting(false);
+      } catch (e) {
+        console.error(e);
+        alert('Ошибка импорта');
+      } finally {
+        setImporting(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
   };
 
-  // Фильтруем список коллекций в зависимости от выбранного бренда
   const filteredCollections = filterBrand === 'all'
     ? collections
-    : collections.filter(c => c.brand === filterBrand || !c.brand); // !c.brand для совместимости со старыми
+    : collections.filter(c => c.brand === filterBrand || !c.brand);
+
+  if (loading && products.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -175,12 +195,11 @@ export function AdminProducts() {
           <p className="text-sm sm:text-base text-black/60">Всего товаров: {pagination.total}</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-           {/* Кнопки Экспорт/Импорт/Добавить */}
-           <button onClick={handleExport} disabled={exporting} className="btn-primary bg-green-600 hover:bg-green-700 text-white px-4 py-2 uppercase font-bold text-sm">
-             {exporting ? '...' : <DownloadIcon className="w-4 h-4" />}
+           <button onClick={handleExport} disabled={exporting} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 uppercase font-bold text-sm flex items-center justify-center min-w-[40px]">
+             {exporting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <DownloadIcon className="w-4 h-4" />}
            </button>
-           <button onClick={handleImportClick} disabled={importing} className="btn-primary bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 uppercase font-bold text-sm">
-             {importing ? '...' : <UploadIcon className="w-4 h-4" />}
+           <button onClick={handleImportClick} disabled={importing} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 uppercase font-bold text-sm flex items-center justify-center min-w-[40px]">
+             {importing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <UploadIcon className="w-4 h-4" />}
            </button>
            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
            <Link to="/admin/products/new" className="bg-[#C8102E] hover:bg-[#A00D24] text-white px-4 py-2 uppercase font-bold text-sm flex items-center gap-2">
@@ -191,8 +210,6 @@ export function AdminProducts() {
 
       <div className="bg-white p-4 sm:p-6 border-2 border-black/10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-
-          {/* Поиск */}
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
             <input
@@ -204,7 +221,6 @@ export function AdminProducts() {
             />
           </div>
 
-          {/* Фильтр Бренда */}
           <select
             value={filterBrand}
             onChange={handleBrandChange}
@@ -215,7 +231,6 @@ export function AdminProducts() {
             <option value="Orient Star">Orient Star</option>
           </select>
 
-          {/* Фильтр Коллекции (Зависимый) */}
           <select
             value={filterCollection}
             onChange={handleCollectionChange}
@@ -231,14 +246,13 @@ export function AdminProducts() {
         </div>
       </div>
 
-      {/* Таблица товаров */}
       <div className="hidden md:block bg-white border-2 border-black/10 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-black/10">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Товар</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Бренд</th> {/* Добавлено */}
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Бренд</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Коллекция</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Цена</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-black/60">Статус</th>
@@ -267,7 +281,15 @@ export function AdminProducts() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end space-x-2">
-                      <Link to={`/admin/products/${product.id}/edit`} className="p-2 hover:bg-gray-100"><EditIcon className="w-4 h-4" /></Link>
+                      <Link to={`/product/${product.id}`} target="_blank" className="p-2 hover:bg-gray-100"><EyeIcon className="w-4 h-4" /></Link>
+                      {/* ИСПРАВЛЕНО: Добавлен state для сохранения позиции */}
+                      <Link
+                        to={`/admin/products/${product.id}/edit`}
+                        state={{ search: searchParams.toString() }}
+                        className="p-2 hover:bg-gray-100"
+                      >
+                        <EditIcon className="w-4 h-4" />
+                      </Link>
                       <button onClick={() => handleDelete(product.id)} className="p-2 hover:bg-red-50 text-red-600"><TrashIcon className="w-4 h-4" /></button>
                     </div>
                   </td>
@@ -280,12 +302,54 @@ export function AdminProducts() {
         </div>
       </div>
 
-      {/* Пагинация (как было) */}
+      {/* Пагинация (Восстановлен дизайн с номерами) */}
       {products.length > 0 && (
-        <div className="flex justify-between items-center bg-white p-4 border-2 border-black/10">
-           <button disabled={currentPage === 1} onClick={() => handlePageChange(currentPage - 1)} className="p-2 border hover:bg-black hover:text-white disabled:opacity-50"><ChevronLeftIcon/></button>
-           <span>Страница {currentPage} из {pagination.totalPages}</span>
-           <button disabled={currentPage === pagination.totalPages} onClick={() => handlePageChange(currentPage + 1)} className="p-2 border hover:bg-black hover:text-white disabled:opacity-50"><ChevronRightIcon/></button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border-2 border-black/10">
+          <p className="text-xs sm:text-sm text-black/60">
+            Страница {currentPage} из {pagination.totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 sm:px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all text-xs sm:text-sm font-medium uppercase tracking-wider disabled:opacity-50"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+            </button>
+
+            <div className="hidden sm:flex gap-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum = i + 1;
+                    if (pagination.totalPages > 5) {
+                        if (currentPage > 3) pageNum = currentPage - 2 + i;
+                        if (pageNum > pagination.totalPages) pageNum = pagination.totalPages - (4 - i);
+                    }
+                    if (pageNum < 1) pageNum = 1;
+
+                    return (
+                        <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`w-8 h-8 flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                                currentPage === pageNum
+                                    ? 'bg-black text-white border-black'
+                                    : 'border-transparent hover:border-black'
+                            }`}
+                        >
+                            {pageNum}
+                        </button>
+                    );
+                })}
+            </div>
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === pagination.totalPages}
+              className="px-3 sm:px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all text-xs sm:text-sm font-medium uppercase tracking-wider disabled:opacity-50"
+            >
+              <ChevronRightIcon className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>

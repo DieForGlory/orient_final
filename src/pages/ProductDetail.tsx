@@ -87,6 +87,7 @@ export function ProductDetail() {
     updateMetaTag('description', product.seoDescription || product.description);
     updateMetaTag('keywords', product.seoKeywords || `${product.collection}, Orient, часы`);
 
+    // OG Tags
     updateMetaTag('og:title', product.fbTitle || product.seoTitle || product.name, 'og:title');
     updateMetaTag('og:description', product.fbDescription || product.seoDescription || product.description, 'og:description');
     updateMetaTag('og:image', product.image, 'og:image');
@@ -162,6 +163,17 @@ export function ProductDetail() {
 
   const handleMouseLeave = () => {
     setShowMagnifier(false);
+  };
+
+  // --- НОВАЯ ФУНКЦИЯ: Копирование ссылки ---
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href)
+      .then(() => {
+        alert('Ссылка на товар скопирована в буфер обмена!');
+      })
+      .catch(err => {
+        console.error('Ошибка копирования:', err);
+      });
   };
 
   const handleAddToCart = () => {
@@ -243,11 +255,10 @@ export function ProductDetail() {
     { label: 'Материал корпуса', value: product.caseMaterial },
     { label: 'Материал браслета', value: product.strapMaterial },
     { label: 'Цвет циферблата', value: product.dialColor },
-    // ИСПРАВЛЕНИЕ: Заменили "Водозащита" на "Водонепроницаемость корпуса"
     { label: 'Водонепроницаемость корпуса', value: product.waterResistance },
   ];
 
-  // Добавляем дополнительные specs из JSON
+  // Добавляем дополнительные specs из JSON (исключая дубликаты, если они там есть)
   const additionalSpecs = Object.entries(product.specs || {}).map(([label, value]) => ({ label, value }));
 
   // Фильтруем пустые значения
@@ -479,6 +490,7 @@ export function ProductDetail() {
                 </button>
 
                 <button
+                  onClick={handleShare}
                   className="hidden sm:block p-5 border-2 border-black hover:bg-black hover:text-white transition-all duration-500"
                   aria-label="Поделиться"
                   disabled={isAddingToCart}
