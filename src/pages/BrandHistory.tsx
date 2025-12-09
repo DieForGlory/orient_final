@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { publicApi } from '../services/publicApi';
+import { SEO } from '../components/SEO'; // Добавлен импорт
 
 interface HistoryEvent {
   id: number;
@@ -27,7 +28,13 @@ export function BrandHistory() {
     fetchHistory();
   }, []);
 
-  return <div className="w-full bg-white">
+  return (
+    <div className="w-full bg-white">
+      <SEO
+        title="История бренда Orient Watch – С 1950 года японское мастерство часов | Orient Watch Uzbekistan"
+        description="Изучите историю Orient Watch: от основания в 1950 году в Японии - до инноваций в механических часах. Ключевые milestones, традиции качества и глобальный успех. Официальный сайт в Узбекистане. Официальный дилер Orient Watch в Узбекистане."
+      />
+
       {/* Hero */}
       <section className="relative bg-black text-white py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
@@ -50,7 +57,6 @@ export function BrandHistory() {
           ) : (
             events.map((event, index) => (
               <div key={event.id || index} className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                {/* Чередование порядка для четных/нечетных элементов */}
                 <div className={index % 2 === 0 ? 'order-2 md:order-1' : ''}>
                   {index % 2 === 0 ? (
                     <img src={event.image} alt={`Orient ${event.year}`} className="w-full rounded-lg shadow-xl hover:scale-105 transition-transform duration-700" />
@@ -62,7 +68,6 @@ export function BrandHistory() {
                     </div>
                   )}
                 </div>
-
                 <div className={index % 2 === 0 ? 'order-1 md:order-2' : ''}>
                   {index % 2 === 0 ? (
                     <div className="space-y-4">
@@ -80,7 +85,6 @@ export function BrandHistory() {
         </div>
       </section>
 
-      {/* Philosophy (static content remains) */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
           <h2 className="text-4xl font-bold tracking-widest">НАША ФИЛОСОФИЯ</h2>
@@ -88,26 +92,21 @@ export function BrandHistory() {
             <div className="space-y-4">
               <div className="text-5xl font-bold text-[#C8102E]">100%</div>
               <h3 className="text-xl font-bold tracking-wide">Мануфактура</h3>
-              <p className="text-gray-600">
-                Все наши часы оснащены механизмами собственного производства
-              </p>
+              <p className="text-gray-600">Все наши часы оснащены механизмами собственного производства</p>
             </div>
             <div className="space-y-4">
               <div className="text-5xl font-bold text-[#C8102E]">75+</div>
               <h3 className="text-xl font-bold tracking-wide">ЛЕТ ОПЫТА</h3>
-              <p className="text-gray-600">
-                Более семи десятилетий совершенствования часового мастерства
-              </p>
+              <p className="text-gray-600">Более семи десятилетий совершенствования часового мастерства</p>
             </div>
             <div className="space-y-4">
               <div className="text-5xl font-bold text-[#C8102E]">∞</div>
               <h3 className="text-xl font-bold tracking-wide">КАЧЕСТВО</h3>
-              <p className="text-gray-600">
-                Каждые часы проходят строгий контроль качества перед отправкой
-              </p>
+              <p className="text-gray-600">Каждые часы проходят строгий контроль качества перед отправкой</p>
             </div>
           </div>
         </div>
       </section>
-    </div>;
+    </div>
+  );
 }

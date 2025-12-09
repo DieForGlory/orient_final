@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { SEO } from '../components/SEO'; // Добавлен импорт компонента SEO
 
 interface Product {
   id: string;
@@ -62,42 +63,7 @@ export function ProductDetail() {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (!product) return;
-
-    const title = product.seoTitle || `${product.name} | Orient Watch`;
-    document.title = title;
-
-    const updateMetaTag = (name: string, content: string, property?: string) => {
-      if (!content) return;
-      const selector = property ? `meta[property="${property}"]` : `meta[name="${name}"]`;
-      let meta = document.querySelector(selector) as HTMLMetaElement;
-      if (!meta) {
-        meta = document.createElement('meta');
-        if (property) {
-          meta.setAttribute('property', property);
-        } else {
-          meta.setAttribute('name', name);
-        }
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', content);
-    };
-
-    updateMetaTag('description', product.seoDescription || product.description);
-    updateMetaTag('keywords', product.seoKeywords || `${product.collection}, Orient, часы`);
-
-    // OG Tags
-    updateMetaTag('og:title', product.fbTitle || product.seoTitle || product.name, 'og:title');
-    updateMetaTag('og:description', product.fbDescription || product.seoDescription || product.description, 'og:description');
-    updateMetaTag('og:image', product.image, 'og:image');
-    updateMetaTag('og:type', 'product', 'og:type');
-    updateMetaTag('og:url', window.location.href, 'og:url');
-
-    return () => {
-      document.title = 'Orient Watch';
-    };
-  }, [product]);
+  // Старый useEffect для document.title и meta удален, так как теперь используется <SEO />
 
   const allImages = useMemo(() => {
     if (!product) return [];
@@ -165,7 +131,6 @@ export function ProductDetail() {
     setShowMagnifier(false);
   };
 
-  // --- НОВАЯ ФУНКЦИЯ: Копирование ссылки ---
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href)
       .then(() => {
@@ -264,8 +229,18 @@ export function ProductDetail() {
   // Фильтруем пустые значения
   const allSpecs = [...mainSpecs, ...additionalSpecs].filter(item => item.value && item.value.toString().trim() !== '');
 
+  // Подготовка данных для SEO
+  const pageTitle = product.seoTitle || `${product.name} – Купить в Ташкенте | Orient Watch Uzbekistan`;
+  const pageDescription = product.seoDescription || `Купить часы ${product.name} из коллекции ${product.collection}. Официальная гарантия, бесплатная доставка по Ташкенту. Характеристики: ${product.movement || 'японский механизм'}, ${product.caseMaterial || 'стальной корпус'}.`;
+
   return (
     <div className="w-full bg-white">
+      {/* SEO Компонент */}
+      <SEO
+        title={pageTitle}
+        description={pageDescription}
+      />
+
       {/* Breadcrumb */}
       <div className="border-b border-black/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-4 sm:py-6">

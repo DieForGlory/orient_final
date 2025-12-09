@@ -5,6 +5,8 @@ import { CollectionShowcase } from '../components/CollectionShowcase';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon } from 'lucide-react';
 import { publicApi } from '../services/publicApi';
+import { SEO } from '../components/SEO'; // Добавлен импорт
+
 interface HeritageContent {
   title: string;
   subtitle: string;
@@ -13,19 +15,21 @@ interface HeritageContent {
   ctaLink: string;
   yearsText: string;
 }
+
 export function Home() {
   const [loading, setLoading] = useState(true);
   const [heritageContent, setHeritageContent] = useState<HeritageContent | null>(null);
+
   useEffect(() => {
     fetchHeritageContent();
   }, []);
+
   const fetchHeritageContent = async () => {
     try {
       const data = await publicApi.getHeritageSection();
       setHeritageContent(data);
     } catch (error) {
       console.error('Error fetching heritage content:', error);
-      // Use fallback content
       setHeritageContent({
         title: '75 лет\nмастерства',
         subtitle: 'С 1950 года',
@@ -38,24 +42,30 @@ export function Home() {
       setLoading(false);
     }
   };
-  return <div className="w-full bg-white">
+
+  return (
+    <div className="w-full bg-white">
+      <SEO
+        title="Orient Watch Uzbekistan. Купить часы Orient в Ташкенте. Официальный дилер Orient Watch в Узбекистане."
+        description="Оригинальные японские часы Orient в Узбекистане: коллекции, новинки, гарантия и бесплатная доставка по Ташкенту. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
+      />
       <Hero />
       <WatchShowcase />
       <CollectionShowcase />
 
       {/* Heritage Banner */}
       <section className="bg-black text-white py-16 sm:py-24 lg:py-32 relative overflow-hidden">
-        {/* Animated background lines */}
         <div className="absolute inset-0 opacity-5">
           <div className="line-draw absolute top-1/3 left-0 right-0"></div>
-          <div className="line-draw absolute top-2/3 left-0 right-0" style={{
-          animationDelay: '1.5s'
-        }}></div>
+          <div className="line-draw absolute top-2/3 left-0 right-0" style={{ animationDelay: '1.5s' }}></div>
         </div>
 
-        {loading ? <div className="flex items-center justify-center py-20">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
             <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-          </div> : heritageContent ? <div className="max-w-3xl mx-auto px-4 sm:px-8 lg:px-16 text-center space-y-8 sm:space-y-12 relative z-10">
+          </div>
+        ) : heritageContent ? (
+          <div className="max-w-3xl mx-auto px-4 sm:px-8 lg:px-16 text-center space-y-8 sm:space-y-12 relative z-10">
             <div className="space-y-6 sm:space-y-8">
               <div className="flex items-center justify-center space-x-3 sm:space-x-4">
                 <div className="w-12 sm:w-16 h-0.5 bg-[#C8102E]"></div>
@@ -75,7 +85,9 @@ export function Home() {
               <span>{heritageContent.ctaText}</span>
               <ArrowRightIcon className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-2 transition-transform duration-500" strokeWidth={2} />
             </Link>
-          </div> : null}
+          </div>
+        ) : null}
       </section>
-    </div>;
+    </div>
+  );
 }

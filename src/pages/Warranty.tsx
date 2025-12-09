@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
+import { SEO } from '../components/SEO';
 
 export function Warranty() {
   const { site } = useSettings();
@@ -35,7 +36,10 @@ export function Warranty() {
 
   return (
     <div className="w-full bg-white">
-      {/* Hero Section */}
+      <SEO
+        title="Гарантия Orient Watch – Официальный сервис центр в Ташкенте | Orient Watch Uzbekistan"
+        description="Официальная гарантия на часы Orient в Узбекистане. Узнайте адреса сервисных центров и условия гарантийного обслуживания."
+      />
       <section className="relative bg-black text-white py-16 sm:py-24">
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="absolute top-1/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CalendarIcon, ClockIcon, MapPinIcon, PhoneIcon, MailIcon, ArrowRightIcon } from 'lucide-react';
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
+import { SEO } from '../components/SEO';
 
 export function Boutique() {
   const { site } = useSettings();
@@ -100,9 +101,11 @@ export function Boutique() {
 
   return (
     <div className="w-full bg-white">
-      {/* Hero Section */}
+      <SEO
+        title="Бутик Официального дилера Orient Watch в Узбекистане | Orient Watch Uzbekistan"
+        description="Официальный Бутик Orient Watch в Ташкенте: г.Ташкент, ул.Аккурган, 24, +998 88 281-28-28, Пн-Сб: 11:00 - 19:00 Вс: 12:00 - 18:00. Запишитесь на примерку оригинальных японских часов с гарантией. Официальный дилер Orient Watch в Узбекистане."
+      />
       <section className="relative bg-black text-white py-16 sm:py-24 lg:py-32 overflow-hidden">
-        {/* Фоновое изображение (опционально, если загружено в админке) */}
         {content.hero?.coverImage && (
           <div className="absolute inset-0 z-0">
             <img

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
-
+import { SEO } from '../components/SEO';
 export function DeliveryPolicy() {
   const { site } = useSettings();
   const [data, setData] = useState<{ title: string; content: string } | null>(null);
@@ -34,7 +34,10 @@ export function DeliveryPolicy() {
 
   return (
     <div className="w-full bg-white">
-      {/* Hero Section */}
+      <SEO
+        title="Условия доставки и оплаты часов Orient в Узбекистане | Orient Watch Uzbekistan"
+        description="Бесплатная доставка часов Orient по Ташкенту. Быстрая доставка по всему Узбекистану. Способы оплаты: Payme, Click, наличные."
+      />
       <section className="relative bg-black text-white py-16 sm:py-24">
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="absolute top-1/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>

@@ -5,6 +5,7 @@ import { SlidersHorizontalIcon, XIcon, GridIcon, ListIcon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
+import { SEO } from '../components/SEO'; // Добавлен импорт
 
 interface Product {
   id: string;
@@ -20,25 +21,17 @@ export function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 12,
-    total: 0,
-    totalPages: 0
-  });
+  const [pagination, setPagination] = useState({ page: 1, limit: 12, total: 0, totalPages: 0 });
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('popular');
 
-  // СЧИТЫВАЕМ ВСЕ ФИЛЬТРЫ ИЗ URL
   const filters = {
     collection: searchParams.get('collection') || '',
     search: searchParams.get('search') || '',
     minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : undefined,
     maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : undefined,
     page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
-
-    // Новые фильтры
     brand: searchParams.get('brand') || '',
     gender: searchParams.get('gender') || '',
     minDiameter: searchParams.get('minDiameter') ? parseFloat(searchParams.get('minDiameter')!) : undefined,
@@ -48,8 +41,6 @@ export function Catalog() {
     caseMaterial: searchParams.get('caseMaterial') || '',
     dialColor: searchParams.get('dialColor') || '',
     waterResistance: searchParams.get('waterResistance') || '',
-
-    // ИСПРАВЛЕНИЕ: Добавлен фильтр особенностей (массив)
     features: searchParams.getAll('features'),
   };
 
@@ -60,11 +51,7 @@ export function Catalog() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const response = await publicApi.getProducts({
-        ...filters,
-        sort: sortBy,
-        limit: pagination.limit
-      });
+      const response = await publicApi.getProducts({ ...filters, sort: sortBy, limit: pagination.limit });
       setProducts(response.data);
       setPagination(response.pagination);
     } catch (error) {
@@ -80,9 +67,7 @@ export function Catalog() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const clearFilters = () => {
-    setSearchParams({});
-  };
+  const clearFilters = () => setSearchParams({});
 
   const removeFilter = (key: string, value?: string) => {
     if (key === 'features' && value) {
@@ -96,13 +81,15 @@ export function Catalog() {
     setSearchParams(searchParams);
   };
 
-  const activeFilters = Array.from(searchParams.entries()).filter(([key]) =>
-    !['page', 'limit', 'sort'].includes(key)
-  );
+  const activeFilters = Array.from(searchParams.entries()).filter(([key]) => !['page', 'limit', 'sort'].includes(key));
 
   return (
     <div className="w-full bg-white">
-      {/* Hero Section */}
+      <SEO
+        title="Каталог часов Orient Watch – Все модели и официальные цены в Узбекистане | Orient Watch Uzbekistan"
+        description="Каталог оригинальных часов Orient Watch Uzbekistan: механические, кварцевые, дайверы и классика. Купить с доставкой по Узбекистану. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
+      />
+
       <section className="relative bg-black text-white py-16 sm:py-24 overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-1/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>
@@ -128,16 +115,12 @@ export function Catalog() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-8 sm:py-12 lg:py-16">
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-          {/* Filters Sidebar */}
           <aside className="hidden lg:block w-80 flex-shrink-0">
             <div className="sticky top-32">
               <FilterSidebar />
             </div>
           </aside>
-
-          {/* Main Content */}
           <div className="flex-1 min-w-0">
-            {/* Toolbar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 sm:mb-12 pb-4 sm:pb-6 border-b border-black/10">
               <div className="flex items-center space-x-4 sm:space-x-6 w-full sm:w-auto">
                 <button onClick={() => setShowFilters(true)} className="lg:hidden flex items-center space-x-2 border-2 border-black px-4 sm:px-6 py-2 sm:py-3 hover:bg-black hover:text-white transition-all w-full justify-center">
@@ -148,7 +131,6 @@ export function Catalog() {
                   <p className="text-sm font-medium text-black">{pagination.total} моделей</p>
                 </div>
               </div>
-
               <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
                 <div className="hidden md:flex items-center border border-black/20">
                   <button onClick={() => setViewMode('grid')} className={`p-3 ${viewMode === 'grid' ? 'bg-black text-white' : 'hover:bg-gray-50'}`}><GridIcon className="w-5 h-5" /></button>
@@ -164,7 +146,6 @@ export function Catalog() {
               </div>
             </div>
 
-            {/* Active Filters */}
             {activeFilters.length > 0 && <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
                 {activeFilters.map(([key, value]) => {
                   let label = value;
@@ -173,7 +154,6 @@ export function Catalog() {
                   else if (key === 'minDiameter') label = `D от ${value} мм`;
                   else if (key === 'maxDiameter') label = `D до ${value} мм`;
                   else if (key === 'features') label = `Особенность: ${value}`;
-
                   return (
                     <button key={`${key}-${value}`} onClick={() => removeFilter(key, value)} className="flex items-center space-x-2 bg-black text-white px-3 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs tracking-[0.15em] font-medium hover:bg-[#C8102E] transition-colors">
                       <span className="uppercase">{label}</span>
@@ -184,7 +164,6 @@ export function Catalog() {
                 <button onClick={clearFilters} className="text-[10px] sm:text-xs tracking-[0.15em] font-medium text-[#C8102E] hover:underline uppercase">Очистить все</button>
               </div>}
 
-            {/* Products Grid */}
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
@@ -216,7 +195,6 @@ export function Catalog() {
         </div>
       </div>
 
-      {/* Mobile Filter Drawer */}
       {showFilters && <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowFilters(false)}></div>
           <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white overflow-y-auto">

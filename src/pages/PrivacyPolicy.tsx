@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
+import { SEO } from '../components/SEO';
 
 export function PrivacyPolicy() {
   const [data, setData] = useState<any>(null);
@@ -18,6 +19,10 @@ export function PrivacyPolicy() {
 
   return (
     <div className="w-full bg-white">
+    <SEO
+        title="Политика конфиденциальности | Orient Watch Uzbekistan"
+        description="Политика обработки персональных данных Orient Watch Uzbekistan."
+      />
       <div className="bg-black text-white py-16 sm:py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-8">
            <h1 className="text-4xl sm:text-5xl font-bold mb-4">{data.title}</h1>

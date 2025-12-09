@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
+import { SEO } from '../components/SEO';
 
 export function ReturnPolicy() {
   const { site } = useSettings();
@@ -34,7 +35,10 @@ export function ReturnPolicy() {
 
   return (
     <div className="w-full bg-white">
-      {/* Hero Section */}
+      <SEO
+        title="Возврат и обмен товара – Условия возврата Orient Watch | Orient Watch Uzbekistan"
+        description="Правила возврата и обмена часов Orient в Узбекистане. 14 дней на возврат, условия и порядок оформления."
+      />
       <section className="relative bg-black text-white py-16 sm:py-24">
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="absolute top-1/3 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"></div>

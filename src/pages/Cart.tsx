@@ -5,6 +5,7 @@ import { publicApi } from '../services/publicApi';
 import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { PaymeButton } from '../components/PaymeButton';
+import { SEO } from '../components/SEO';
 
 interface FormData {
   // Contact
@@ -233,7 +234,10 @@ export function Cart() {
 
   return (
     <div className="w-full bg-white">
-      {/* Header Cart Steps */}
+      <SEO
+        title="Корзина покупок – Оформление заказа | Orient Watch Uzbekistan"
+        description="Ваша корзина Orient Watch. Оформите заказ на официальные японские часы с бесплатной доставкой по Ташкенту."
+      />
       <div className="bg-black text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
           <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">

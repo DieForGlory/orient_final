@@ -320,11 +320,14 @@ export function AdminProducts() {
             <div className="hidden sm:flex gap-1">
                 {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     let pageNum = i + 1;
+
+                    // Если страниц больше 5, используем "умный" сдвиг
                     if (pagination.totalPages > 5) {
-                        if (currentPage > 3) pageNum = currentPage - 2 + i;
-                        if (pageNum > pagination.totalPages) pageNum = pagination.totalPages - (4 - i);
+                        // Рассчитываем стартовую страницу так, чтобы активная была по центру,
+                        // но не выходила за границы начала (1) и конца списка
+                        const startPage = Math.max(1, Math.min(currentPage - 2, pagination.totalPages - 4));
+                        pageNum = startPage + i;
                     }
-                    if (pageNum < 1) pageNum = 1;
 
                     return (
                         <button
