@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useCart } from '../contexts/CartContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { SEO } from '../components/SEO'; // Добавлен импорт компонента SEO
+import { SEO } from '../components/SEO';
 
 interface Product {
   id: string;
@@ -40,6 +40,7 @@ export function ProductDetail() {
   const { addItem } = useCart();
   const { formatPrice } = useSettings();
 
+  // 1. ХУКИ (useState, useRef, useMemo) - должны быть в самом начале
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -57,14 +58,7 @@ export function ProductDetail() {
   const imageRef = useRef<HTMLDivElement>(null);
   const addToCartButtonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (id) {
-      fetchProduct(id);
-    }
-  }, [id]);
-
-  // Старый useEffect для document.title и meta удален, так как теперь используется <SEO />
-
+  // useMemo поднимаем сюда (ДО return). Он зависит от product, но внутри есть проверка.
   const allImages = useMemo(() => {
     if (!product) return [];
     const imgs = [product.image];
@@ -78,10 +72,18 @@ export function ProductDetail() {
     return imgs;
   }, [product]);
 
+  // 2. ЭФФЕКТЫ (useEffect)
+  useEffect(() => {
+    if (id) {
+      fetchProduct(id);
+    }
+  }, [id]);
+
   useEffect(() => {
     setSelectedImage(0);
   }, [id]);
 
+  // 3. ФУНКЦИИ-ОБРАБОТЧИКИ
   const fetchProduct = async (productId: string) => {
     setLoading(true);
     try {
@@ -188,6 +190,8 @@ export function ProductDetail() {
     }
   };
 
+  // 4. УСЛОВНЫЙ РЕНДЕРИНГ (Загрузка / Ошибка)
+  // Внимание: все хуки должны быть ВЫШЕ этих строк
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -209,9 +213,13 @@ export function ProductDetail() {
     );
   }
 
+  // 5. ПЕРЕМЕННЫЕ ДЛЯ РЕНДЕРА (Когда product точно есть)
   const currentImage = allImages[selectedImage] || product.image;
 
-  // ОБЪЕДИНЯЕМ ВСЕ ХАРАКТЕРИСТИКИ
+  // SEO Title для ALT (перенесено сюда, чтобы не было ReferenceError)
+  const baseAltText = product.seoTitle || product.name || 'Orient Watch';
+
+  // Объединяем характеристики
   const mainSpecs = [
     { label: 'Бренд', value: product.brand },
     { label: 'Пол', value: product.gender },
@@ -223,19 +231,14 @@ export function ProductDetail() {
     { label: 'Водонепроницаемость корпуса', value: product.waterResistance },
   ];
 
-  // Добавляем дополнительные specs из JSON (исключая дубликаты, если они там есть)
   const additionalSpecs = Object.entries(product.specs || {}).map(([label, value]) => ({ label, value }));
-
-  // Фильтруем пустые значения
   const allSpecs = [...mainSpecs, ...additionalSpecs].filter(item => item.value && item.value.toString().trim() !== '');
 
-  // Подготовка данных для SEO
   const pageTitle = product.seoTitle || `${product.name} – Купить в Ташкенте | Orient Watch Uzbekistan`;
   const pageDescription = product.seoDescription || `Купить часы ${product.name} из коллекции ${product.collection}. Официальная гарантия, бесплатная доставка по Ташкенту. Характеристики: ${product.movement || 'японский механизм'}, ${product.caseMaterial || 'стальной корпус'}.`;
 
   return (
     <div className="w-full bg-white">
-      {/* SEO Компонент */}
       <SEO
         title={pageTitle}
         description={pageDescription}
@@ -281,7 +284,7 @@ export function ProductDetail() {
               >
                 <img
                   src={currentImage}
-                  alt={`${product.name} - изображение ${selectedImage + 1}`}
+                  alt={`${baseAltText} - ${selectedImage + 1}`}
                   className="w-full h-full object-contain p-6 sm:p-12"
                 />
 
@@ -341,7 +344,7 @@ export function ProductDetail() {
                     onClick={() => setSelectedImage(index)}
                     className={`aspect-square bg-gray-50 transition-all duration-300 border-2 ${selectedImage === index ? 'border-[#C8102E]' : 'border-transparent hover:border-black/20'}`}
                   >
-                    <img src={image} alt={`${product.name} миниатюра ${index + 1}`} className="w-full h-full object-contain p-2 sm:p-3" />
+                    <img src={image} alt={`${baseAltText} thumbnail ${index + 1}`} className="w-full h-full object-contain p-2 sm:p-3" />
                   </button>
                 ))}
               </div>

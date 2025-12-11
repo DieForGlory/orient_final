@@ -9,6 +9,7 @@ interface ProductCardProps {
   price: number;
   image: string;
   index?: number;
+  seoTitle?: string;
 }
 export function ProductCard({
   id,
@@ -16,17 +17,19 @@ export function ProductCard({
   collection,
   price,
   image,
-  index = 0
+  index = 0,
+  seoTitle
 }: ProductCardProps) {
   const {
     formatPrice
   } = useSettings();
   const staggerClass = `animate-stagger-${Math.min(index % 4 + 1, 4)}`;
+  const altText = `${seoTitle || name} - 1`;
   return <div className={`group ${staggerClass}`}>
       <Link to={`/product/${id}`} className="block">
         {/* Image Container - NO grayscale on mobile */}
         <div className="relative aspect-[4/5] bg-white mb-4 sm:mb-6 overflow-hidden">
-          <img src={image} alt={name} className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105" />
+          <img src={image} alt={altText} className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105" />
 
           {/* Gradient Overlay on hover - desktop only */}
           <div className="hidden lg:block absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700"></div>

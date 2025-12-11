@@ -3,15 +3,16 @@ Products routes - CRUD operations
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, asc, desc
 from typing import Optional, List
 import json
 from datetime import datetime
 from database import get_db, Product
 from schemas import ProductCreate, ProductUpdate
 from auth import require_admin
-from sqlalchemy import func, or_, asc, desc
-
+import os
+import shutil
+from fastapi import File, UploadFile
 router = APIRouter()
 
 # Public endpoints
@@ -75,24 +76,24 @@ async def get_products(
         page: int = Query(1, ge=1),
         limit: int = Query(20, ge=1, le=100),
         search: Optional[str] = None,
-        collection: Optional[str] = None,
+        collection: Optional[List[str]] = Query(None), # List для OR логики
 
         # Цены (Aliases обязательны!)
         min_price: Optional[float] = Query(None, alias="minPrice"),
         max_price: Optional[float] = Query(None, alias="maxPrice"),
 
         # Новые фильтры (Aliases обязательны!)
-        brand: Optional[str] = None,
-        gender: Optional[str] = None,
+        brand: Optional[List[str]] = Query(None),
+        gender: Optional[List[str]] = Query(None),
         min_diameter: Optional[float] = Query(None, alias="minDiameter"),
         max_diameter: Optional[float] = Query(None, alias="maxDiameter"),
-        strap_material: Optional[str] = Query(None, alias="strapMaterial"),
+        strap_material: Optional[List[str]] = Query(None, alias="strapMaterial"),
 
         # Существующие фильтры (Aliases обязательны, так как фронт шлет camelCase!)
-        movement: Optional[str] = None,  # movement совпадает, alias не критичен, но лучше оставить
-        case_material: Optional[str] = Query(None, alias="caseMaterial"),
-        dial_color: Optional[str] = Query(None, alias="dialColor"),
-        water_resistance: Optional[str] = Query(None, alias="waterResistance"),
+        movement: Optional[List[str]] = Query(None),  # movement совпадает, alias не критичен, но лучше оставить
+        case_material: Optional[List[str]] = Query(None, alias="caseMaterial"),
+        dial_color: Optional[List[str]] = Query(None, alias="dialColor"),
+        water_resistance: Optional[List[str]] = Query(None, alias="waterResistance"),
 
         features: Optional[List[str]] = Query(None),
         sort: str = Query('popular'),
@@ -101,11 +102,13 @@ async def get_products(
     """Get all products with filters"""
     query = db.query(Product)
 
-    # --- Search & Collection ---
+    # --- Search ---
     if search:
         query = query.filter(or_(Product.name.contains(search), Product.sku.contains(search)))
+
+    # --- Collection (OR Logic via IN) ---
     if collection:
-        query = query.filter(Product.collection == collection)
+        query = query.filter(Product.collection.in_(collection))
 
     # --- Price ---
     if min_price is not None:
@@ -113,32 +116,36 @@ async def get_products(
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
 
-    # --- New Filters ---
+    # --- New Filters (OR Logic via IN) ---
     if brand:
-        query = query.filter(Product.brand == brand)
+        query = query.filter(Product.brand.in_(brand))
     if gender:
-        query = query.filter(Product.gender == gender)
+        query = query.filter(Product.gender.in_(gender))
+
+    # Диаметр (Range logic)
     if min_diameter is not None:
         query = query.filter(Product.case_diameter >= min_diameter)
     if max_diameter is not None:
         query = query.filter(Product.case_diameter <= max_diameter)
+
     if strap_material:
-        query = query.filter(Product.strap_material == strap_material)
+        query = query.filter(Product.strap_material.in_(strap_material))
 
-    # --- Existing Filters ---
+    # --- Existing Filters (OR Logic via IN) ---
     if movement:
-        query = query.filter(Product.movement == movement)
+        query = query.filter(Product.movement.in_(movement))
     if case_material:
-        query = query.filter(Product.case_material == case_material)
+        query = query.filter(Product.case_material.in_(case_material))
     if dial_color:
-        query = query.filter(Product.dial_color == dial_color)
+        query = query.filter(Product.dial_color.in_(dial_color))
     if water_resistance:
-        query = query.filter(Product.water_resistance == water_resistance)
+        query = query.filter(Product.water_resistance.in_(water_resistance))
 
-    # --- Features ---
+    # --- Features (OR Logic via OR_ + CONTAINS) ---
     if features:
-        for feature in features:
-            query = query.filter(Product.features.contains(feature))
+        # Создаем список условий: (features LIKE '%f1%') OR (features LIKE '%f2%') ...
+        conditions = [Product.features.contains(feature) for feature in features]
+        query = query.filter(or_(*conditions))
 
     # --- Sorting ---
     if sort == 'price-asc':
@@ -222,6 +229,88 @@ async def get_product(product_id: str, db: Session = Depends(get_db)):
     return product.to_dict()
 
 # Admin endpoints
+@router.post("/api/admin/products/bulk-image")
+async def upload_product_bulk_image(
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
+        current_user=Depends(require_admin)
+):
+    """
+    Bulk upload handler.
+    Parses SKU-Index from filename (e.g. "RE-BT0006L00B-1.jpg").
+    Finds product by SKU.
+    Updates image at specific index (1 = main, 2+ = gallery).
+    """
+    filename = file.filename
+
+    # 1. Парсинг имени файла
+    # Ожидаем формат: SKU-Index.ext
+    try:
+        name_without_ext = filename.rsplit('.', 1)[0]
+        # Разделяем по последнему дефису
+        if '-' not in name_without_ext:
+            raise ValueError("No separator found")
+
+        sku_part, index_part = name_without_ext.rsplit('-', 1)
+        sku = sku_part.strip()
+        img_index = int(index_part)
+    except Exception:
+        # Если формат неверный, возвращаем ошибку, но с кодом 400
+        # Чтобы клиент понял, что файл пропущен
+        raise HTTPException(status_code=400, detail=f"Неверный формат имени файла: {filename}. Ожидается SKU-Номер.ext")
+
+    # 2. Поиск товара
+    product = db.query(Product).filter(Product.sku == sku).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Товар с SKU '{sku}' не найден")
+
+    # 3. Сохранение файла (Логика аналогична upload.py)
+    # Создаем папку uploads если нет
+    UPLOAD_DIR = "uploads"
+    if not os.path.exists(UPLOAD_DIR):
+        os.makedirs(UPLOAD_DIR)
+
+    # Генерируем уникальное имя, чтобы избежать кэширования при замене
+    import uuid
+    file_ext = filename.split('.')[-1]
+    save_filename = f"{sku}-{img_index}-{str(uuid.uuid4())[:8]}.{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, save_filename)
+
+    with open(file_path, "wb+") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    image_url = f"/uploads/{save_filename}"
+
+    # 4. Обновление товара
+    # Логика: 1 -> Главное фото, >1 -> Галерея
+
+    if img_index == 1:
+        # Главное изображение
+        product.image = image_url
+    else:
+        # Галерея
+        gallery_idx = img_index - 2  # 2 -> 0, 3 -> 1 ...
+
+        current_images = []
+        if product.images:
+            try:
+                current_images = json.loads(product.images)
+            except:
+                current_images = []
+
+        # Если индекс выходит за пределы, просто добавляем (или расширяем массив)
+        if gallery_idx < len(current_images):
+            current_images[gallery_idx] = image_url
+        else:
+            # Если нужно вставить на 5-е место, а всего 1 фото, просто добавляем в конец
+            current_images.append(image_url)
+
+        product.images = json.dumps(current_images)
+
+    db.commit()
+
+    return {"status": "success", "sku": sku, "index": img_index, "url": image_url}
+
 @router.get("/api/admin/products")
 async def get_all_products_admin(
     page: int = Query(1, ge=1),

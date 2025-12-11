@@ -67,15 +67,13 @@ class ApiService {
     limit?: number;
     search?: string;
     collection?: string;
-    brand?: string; // <--- ДОБАВЛЕНО
+    brand?: string;
   }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
     if (params?.collection) queryParams.append('collection', params.collection);
-
-    // <--- ДОБАВЛЕНО: передача бренда
     if (params?.brand) queryParams.append('brand', params.brand);
 
     const query = queryParams.toString();
@@ -363,6 +361,25 @@ class ApiService {
       body: formData
     });
     if (!response.ok) throw new Error('Upload failed');
+    return response.json();
+  }
+
+  // Массовая загрузка фото по SKU
+  async uploadBulkImage(file: File) {
+    const token = localStorage.getItem('adminToken');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/products/bulk-image`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(error.detail || 'Upload failed');
+    }
     return response.json();
   }
 }

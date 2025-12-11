@@ -1,8 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { PlusIcon, SearchIcon, EditIcon, TrashIcon, EyeIcon, DownloadIcon, UploadIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+import { 
+  PlusIcon, 
+  SearchIcon, 
+  EditIcon, 
+  TrashIcon, 
+  EyeIcon, 
+  DownloadIcon, 
+  UploadIcon, 
+  ChevronLeftIcon, 
+  ChevronRightIcon,
+  ImagesIcon // Иконка для массовой загрузки
+} from 'lucide-react';
 import { api } from '../../services/api';
 import { useSettings } from '../../contexts/SettingsContext';
+import { BulkImageUploadModal } from '../../components/admin/BulkImageUploadModal'; // Импорт модалки
 
 interface Product {
   id: string;
@@ -39,6 +51,8 @@ export function AdminProducts() {
 
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false); // Состояние для модалки
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -195,13 +209,27 @@ export function AdminProducts() {
           <p className="text-sm sm:text-base text-black/60">Всего товаров: {pagination.total}</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-           <button onClick={handleExport} disabled={exporting} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 uppercase font-bold text-sm flex items-center justify-center min-w-[40px]">
+           {/* Кнопка экспорта */}
+           <button onClick={handleExport} disabled={exporting} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 uppercase font-bold text-sm flex items-center justify-center min-w-[40px]" title="Экспорт в Excel">
              {exporting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <DownloadIcon className="w-4 h-4" />}
            </button>
-           <button onClick={handleImportClick} disabled={importing} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 uppercase font-bold text-sm flex items-center justify-center min-w-[40px]">
+           
+           {/* Кнопка импорта */}
+           <button onClick={handleImportClick} disabled={importing} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 uppercase font-bold text-sm flex items-center justify-center min-w-[40px]" title="Импорт из Excel">
              {importing ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <UploadIcon className="w-4 h-4" />}
            </button>
            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+
+           {/* Кнопка Массовой загрузки фото */}
+           <button 
+             onClick={() => setShowBulkModal(true)} 
+             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 uppercase font-bold text-sm flex items-center gap-2"
+             title="Массовая загрузка фото"
+           >
+              <ImagesIcon className="w-4 h-4" /> 
+              <span className="hidden sm:inline">Фото</span>
+           </button>
+
            <Link to="/admin/products/new" className="bg-[#C8102E] hover:bg-[#A00D24] text-white px-4 py-2 uppercase font-bold text-sm flex items-center gap-2">
              <PlusIcon className="w-4 h-4" /> Добавить
            </Link>
@@ -264,7 +292,7 @@ export function AdminProducts() {
                 <tr key={product.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-4">
-                      <img src={product.image} className="w-12 h-12 object-cover bg-gray-100" />
+                      <img src={product.image} className="w-12 h-12 object-cover bg-gray-100" alt={product.name} />
                       <div>
                         <p className="font-semibold text-sm">{product.name}</p>
                         <p className="text-xs text-black/50">{product.sku}</p>
@@ -282,7 +310,6 @@ export function AdminProducts() {
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end space-x-2">
                       <Link to={`/product/${product.id}`} target="_blank" className="p-2 hover:bg-gray-100"><EyeIcon className="w-4 h-4" /></Link>
-                      {/* ИСПРАВЛЕНО: Добавлен state для сохранения позиции */}
                       <Link
                         to={`/admin/products/${product.id}/edit`}
                         state={{ search: searchParams.toString() }}
@@ -302,7 +329,7 @@ export function AdminProducts() {
         </div>
       </div>
 
-      {/* Пагинация (Восстановлен дизайн с номерами) */}
+      {/* Пагинация */}
       {products.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 border-2 border-black/10">
           <p className="text-xs sm:text-sm text-black/60">
@@ -320,15 +347,10 @@ export function AdminProducts() {
             <div className="hidden sm:flex gap-1">
                 {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     let pageNum = i + 1;
-
-                    // Если страниц больше 5, используем "умный" сдвиг
                     if (pagination.totalPages > 5) {
-                        // Рассчитываем стартовую страницу так, чтобы активная была по центру,
-                        // но не выходила за границы начала (1) и конца списка
                         const startPage = Math.max(1, Math.min(currentPage - 2, pagination.totalPages - 4));
                         pageNum = startPage + i;
                     }
-
                     return (
                         <button
                             key={pageNum}
@@ -354,6 +376,16 @@ export function AdminProducts() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Модалка массовой загрузки */}
+      {showBulkModal && (
+        <BulkImageUploadModal 
+          onClose={() => setShowBulkModal(false)} 
+          onComplete={() => {
+            fetchProducts(); // Обновляем список после загрузки
+          }} 
+        />
       )}
     </div>
   );

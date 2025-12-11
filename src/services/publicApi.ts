@@ -29,48 +29,53 @@ class PublicApiService {
     page?: number;
     limit?: number;
     search?: string;
-    collection?: string;
+    collection?: string[];
     minPrice?: number;
     maxPrice?: number;
     sort?: string;
-    // Новые фильтры
-    brand?: string;
-    gender?: string;
+    // Обновленные типы для массивов (мультивыбор)
+    brand?: string[];
+    gender?: string[];
     minDiameter?: number;
     maxDiameter?: number;
-    strapMaterial?: string;
-    movement?: string;
-    caseMaterial?: string;
-    dialColor?: string;
-    waterResistance?: string;
-    features?: string[]; // <--- ДОБАВЛЕНО: Массив строк
+    strapMaterial?: string[];
+    movement?: string[];
+    caseMaterial?: string[];
+    dialColor?: string[];
+    waterResistance?: string[];
+    features?: string[];
   }) {
     const queryParams = new URLSearchParams();
+
+    // Базовые параметры
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
-    if (params?.collection) queryParams.append('collection', params.collection);
     if (params?.minPrice) queryParams.append('minPrice', params.minPrice.toString());
     if (params?.maxPrice) queryParams.append('maxPrice', params.maxPrice.toString());
     if (params?.sort) queryParams.append('sort', params.sort);
 
-    // Одиночные фильтры
-    if (params?.brand) queryParams.append('brand', params.brand);
-    if (params?.gender) queryParams.append('gender', params.gender);
+    // Одиночные параметры (диапазоны размеров)
     if (params?.minDiameter) queryParams.append('minDiameter', params.minDiameter.toString());
     if (params?.maxDiameter) queryParams.append('maxDiameter', params.maxDiameter.toString());
-    if (params?.strapMaterial) queryParams.append('strapMaterial', params.strapMaterial);
-    if (params?.movement) queryParams.append('movement', params.movement);
-    if (params?.caseMaterial) queryParams.append('caseMaterial', params.caseMaterial);
-    if (params?.dialColor) queryParams.append('dialColor', params.dialColor);
-    if (params?.waterResistance) queryParams.append('waterResistance', params.waterResistance);
 
-    // --- ИСПРАВЛЕНИЕ: Обработка массива features ---
-    if (params?.features && Array.isArray(params.features)) {
-      params.features.forEach(feature => {
-        queryParams.append('features', feature);
-      });
-    }
+    // Хелпер для добавления массивов
+    const appendArray = (key: string, values?: string[]) => {
+      if (values && Array.isArray(values) && values.length > 0) {
+        values.forEach(v => queryParams.append(key, v));
+      }
+    };
+
+    // Массивы фильтров
+    appendArray('collection', params?.collection);
+    appendArray('brand', params?.brand);
+    appendArray('gender', params?.gender);
+    appendArray('strapMaterial', params?.strapMaterial);
+    appendArray('movement', params?.movement);
+    appendArray('caseMaterial', params?.caseMaterial);
+    appendArray('dialColor', params?.dialColor);
+    appendArray('waterResistance', params?.waterResistance);
+    appendArray('features', params?.features);
 
     const query = queryParams.toString();
     return this.request(`/api/products${query ? `?${query}` : ''}`);

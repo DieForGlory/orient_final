@@ -27,20 +27,20 @@ export function Catalog() {
   const [sortBy, setSortBy] = useState('popular');
 
   const filters = {
-    collection: searchParams.get('collection') || '',
+    collection: searchParams.getAll('collection'),
     search: searchParams.get('search') || '',
     minPrice: searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : undefined,
     maxPrice: searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : undefined,
     page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
-    brand: searchParams.get('brand') || '',
-    gender: searchParams.get('gender') || '',
+    brand: searchParams.getAll('brand'),
+    gender: searchParams.getAll('gender'),
     minDiameter: searchParams.get('minDiameter') ? parseFloat(searchParams.get('minDiameter')!) : undefined,
     maxDiameter: searchParams.get('maxDiameter') ? parseFloat(searchParams.get('maxDiameter')!) : undefined,
-    strapMaterial: searchParams.get('strapMaterial') || '',
-    movement: searchParams.get('movement') || '',
-    caseMaterial: searchParams.get('caseMaterial') || '',
-    dialColor: searchParams.get('dialColor') || '',
-    waterResistance: searchParams.get('waterResistance') || '',
+    strapMaterial: searchParams.getAll('strapMaterial'),
+    movement: searchParams.getAll('movement'),
+    caseMaterial: searchParams.getAll('caseMaterial'),
+    dialColor: searchParams.getAll('dialColor'),
+    waterResistance: searchParams.getAll('waterResistance'),
     features: searchParams.getAll('features'),
   };
 
@@ -70,17 +70,18 @@ export function Catalog() {
   const clearFilters = () => setSearchParams({});
 
   const removeFilter = (key: string, value?: string) => {
-    if (key === 'features' && value) {
-      const current = searchParams.getAll('features');
-      const newFeatures = current.filter(f => f !== value);
-      searchParams.delete('features');
-      newFeatures.forEach(f => searchParams.append('features', f));
+    if (value) {
+        const currentValues = searchParams.getAll(key);
+        const newValues = currentValues.filter(v => v !== value);
+        searchParams.delete(key);
+        newValues.forEach(v => searchParams.append(key, v));
     } else {
-      searchParams.delete(key);
+        searchParams.delete(key);
     }
     setSearchParams(searchParams);
   };
 
+  // Исправлено: Оставлена только одна декларация activeFilters
   const activeFilters = Array.from(searchParams.entries()).filter(([key]) => !['page', 'limit', 'sort'].includes(key));
 
   return (

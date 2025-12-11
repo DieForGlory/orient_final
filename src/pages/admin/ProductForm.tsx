@@ -78,6 +78,7 @@ export function ProductForm() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false); // Состояние загрузки фото
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -106,7 +107,8 @@ export function ProductForm() {
       setFormData({
         ...INITIAL_FORM_DATA, // Merge with defaults to ensure all fields exist
         ...data,
-        features: data.features.length > 0 ? data.features : [''],
+        features: data.features && data.features.length > 0 ? data.features : [''],
+        images: data.images || [], // Гарантируем массив
         // Fallback for null values
         brand: data.brand || 'Orient',
         gender: data.gender || '',
@@ -150,6 +152,7 @@ export function ProductForm() {
     }
   };
 
+  // --- Helpers for Features ---
   const addFeature = () => setFormData({ ...formData, features: [...formData.features, ''] });
   const removeFeature = (index: number) => setFormData({ ...formData, features: formData.features.filter((_, i) => i !== index) });
   const updateFeature = (index: number, value: string) => {
@@ -158,16 +161,52 @@ export function ProductForm() {
     setFormData({ ...formData, features: newFeatures });
   };
 
-  const addImage = (url: string) => setFormData({ ...formData, images: [...formData.images, url] });
-  const removeImage = (index: number) => setFormData({ ...formData, images: formData.images.filter((_, i) => i !== index) });
+  // --- Handlers for Image Upload ---
+
+  // Универсальная функция загрузки на сервер
+  const uploadFiles = async (files: File[]): Promise<string[]> => {
+    setUploading(true);
+    try {
+      const promises = files.map(file => api.uploadImage(file));
+      const responses = await Promise.all(promises);
+      // Предполагаем, что api.uploadImage возвращает объект { url: "..." }
+      return responses.map(r => r.url);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Ошибка при загрузке изображения');
+      return [];
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Обработчик для ГЛАВНОГО изображения (замена)
+  const handleMainImageUpload = async (files: File[]) => {
+    const urls = await uploadFiles(files);
+    if (urls.length > 0) {
+      // Берем последнее загруженное, если вдруг выбрали несколько
+      setFormData(prev => ({ ...prev, image: urls[urls.length - 1] }));
+    }
+  };
+
+  // Обработчик для ДОПОЛНИТЕЛЬНЫХ изображений (добавление)
+  const handleGalleryUpload = async (files: File[]) => {
+    const urls = await uploadFiles(files);
+    if (urls.length > 0) {
+      setFormData(prev => ({ ...prev, images: [...prev.images, ...urls] }));
+    }
+  };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-[400px]">
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-      </div>;
+      </div>
+    );
   }
 
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to={backUrl} className="p-2 hover:bg-gray-100 transition-colors">
@@ -289,17 +328,41 @@ export function ProductForm() {
         {/* Images */}
         <div className="bg-white p-8 border-2 border-black/10">
           <h2 className="text-2xl font-bold tracking-tight mb-6 uppercase">Изображения</h2>
-          <div className="space-y-6">
-            <ImageUpload value={formData.image} onChange={url => setFormData({ ...formData, image: url })} label="Главное изображение" required />
+          <div className="space-y-8">
+
+            {/* Main Image */}
             <div>
-              <label className="block text-sm font-medium tracking-wider uppercase mb-3">Дополнительные</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                {formData.images.map((img, index) => <div key={index} className="relative border-2 border-black/10 p-2">
-                    <img src={img} className="w-full h-32 object-contain" />
-                    <button type="button" onClick={() => removeImage(index)} className="absolute top-1 right-1 p-1 bg-white border border-black hover:bg-red-50"><XIcon className="w-3 h-3" /></button>
-                  </div>)}
-              </div>
-              <ImageUpload value="" onChange={addImage} label="" />
+              <label className="block text-sm font-medium tracking-wider uppercase mb-3">
+                Главное изображение <span className="text-[#C8102E]">*</span>
+              </label>
+              {/* Используем ImageUpload в режиме "одно фото" - передаем массив из одного элемента */}
+              <ImageUpload
+                images={formData.image ? [formData.image] : []}
+                onChange={(newImages) => {
+                  // Если массив пустой - значит удалили фото
+                  // Если массив не пустой - берем первый элемент
+                  setFormData(prev => ({ ...prev, image: newImages[0] || '' }));
+                }}
+                onUpload={handleMainImageUpload}
+                loading={uploading}
+              />
+              <p className="text-xs text-gray-500 mt-2">Перетащите сюда файл или нажмите для выбора</p>
+            </div>
+
+            {/* Gallery Images (Sortable) */}
+            <div>
+              <label className="block text-sm font-medium tracking-wider uppercase mb-3">
+                Дополнительные изображения (Галерея)
+              </label>
+              <ImageUpload
+                images={formData.images}
+                onChange={(newImages) => setFormData(prev => ({ ...prev, images: newImages }))}
+                onUpload={handleGalleryUpload}
+                loading={uploading}
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Вы можете менять порядок фотографий простым перетаскиванием
+              </p>
             </div>
           </div>
         </div>
@@ -311,10 +374,12 @@ export function ProductForm() {
             <button type="button" onClick={addFeature} className="flex items-center space-x-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-all"><PlusIcon className="w-4 h-4" /><span>Добавить</span></button>
           </div>
           <div className="space-y-3">
-            {formData.features.map((feature, index) => <div key={index} className="flex gap-3">
+            {formData.features.map((feature, index) => (
+              <div key={index} className="flex gap-3">
                 <input type="text" value={feature} onChange={e => updateFeature(index, e.target.value)} className="flex-1 px-4 py-3 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none" />
                 <button type="button" onClick={() => removeFeature(index)} className="p-3 border-2 border-black hover:bg-red-50"><XIcon className="w-5 h-5" /></button>
-              </div>)}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -322,17 +387,22 @@ export function ProductForm() {
         <div className="bg-white p-8 border-2 border-black/10">
           <h2 className="text-2xl font-bold tracking-tight mb-6 uppercase">Прочие спецификации</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {Object.entries(formData.specs).map(([key, value]) => <div key={key}>
+            {Object.entries(formData.specs).map(([key, value]) => (
+              <div key={key}>
                 <label className="block text-sm font-medium tracking-wider uppercase mb-3">{key}</label>
                 <input type="text" value={value} onChange={e => setFormData({ ...formData, specs: { ...formData.specs, [key]: e.target.value } })} className="w-full px-4 py-3 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none" />
-              </div>)}
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="flex justify-end space-x-4">
           <Link to={backUrl} className="px-8 py-4 border-2 border-black hover:bg-gray-50 uppercase font-semibold">Отмена</Link>
-          <button type="submit" disabled={saving} className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white uppercase font-semibold disabled:opacity-50">{saving ? 'Сохранение...' : 'Сохранить'}</button>
+          <button type="submit" disabled={saving || uploading} className="px-8 py-4 bg-[#C8102E] hover:bg-[#A00D24] text-white uppercase font-semibold disabled:opacity-50">
+            {saving ? 'Сохранение...' : 'Сохранить'}
+          </button>
         </div>
       </form>
-    </div>;
+    </div>
+  );
 }

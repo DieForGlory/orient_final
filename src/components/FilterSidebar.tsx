@@ -29,9 +29,8 @@ export function FilterSidebar() {
   const [priceRanges, setPriceRanges] = useState<FilterRange[]>([]);
   const [diameterRanges, setDiameterRanges] = useState<FilterRange[]>([]);
 
-  const [openSections, setOpenSections] = useState<string[]>([
-    'БРЕНД', 'КОЛЛЕКЦИЯ', 'ЦЕНА', 'ДИАМЕТР'
-  ]);
+  // ПУНКТ 3: Все фильтры свернуты по умолчанию
+  const [openSections, setOpenSections] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -60,47 +59,43 @@ export function FilterSidebar() {
     setOpenSections(prev => prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]);
   };
 
-  const handleFilterChange = (key: string, value: string, checked: boolean) => {
-    if (checked) searchParams.set(key, value);
-    else searchParams.delete(key);
-    searchParams.delete('page');
-    setSearchParams(searchParams);
-  };
+  // ПУНКТ 2: Логика мультивыбора (ИЛИ внутри фильтра)
+  const handleMultiFilterChange = (key: string, value: string, checked: boolean) => {
+    // Получаем текущие значения массива
+    const currentValues = searchParams.getAll(key);
 
-  const handleCollectionChange = (value: string, checked: boolean) => {
-    if (checked) searchParams.set('collection', value);
-    else searchParams.delete('collection');
-    searchParams.delete('page');
-    setSearchParams(searchParams);
-  };
-
-  const handleFeatureChange = (feature: string, checked: boolean) => {
-    const currentFeatures = searchParams.getAll('features');
     if (checked) {
-      currentFeatures.push(feature);
+      // Добавляем, если еще нет
+      if (!currentValues.includes(value)) {
+        searchParams.append(key, value);
+      }
     } else {
-      const index = currentFeatures.indexOf(feature);
-      if (index > -1) currentFeatures.splice(index, 1);
+      // Удаляем конкретное значение
+      searchParams.delete(key);
+      currentValues
+        .filter(v => v !== value)
+        .forEach(v => searchParams.append(key, v));
     }
 
-    searchParams.delete('features');
-    currentFeatures.forEach(f => searchParams.append('features', f));
     searchParams.delete('page');
     setSearchParams(searchParams);
   };
 
+  // Для диапазонов (Цена/Диаметр) оставляем логику одиночного выбора,
+  // так как бэкенд обычно принимает только один min/max интервал.
   const handleRangeChange = (paramPrefix: string, min: number, max: number, checked: boolean) => {
     const minKey = `min${paramPrefix}`;
     const maxKey = `max${paramPrefix}`;
 
+    // Сбрасываем старый диапазон перед установкой нового (радио-поведение для чекбоксов диапазонов)
+    searchParams.delete(minKey);
+    searchParams.delete(maxKey);
+
     if (checked) {
       searchParams.set(minKey, min.toString());
       if (max > 0) searchParams.set(maxKey, max.toString());
-      else searchParams.delete(maxKey);
-    } else {
-      searchParams.delete(minKey);
-      searchParams.delete(maxKey);
     }
+
     searchParams.delete('page');
     setSearchParams(searchParams);
   };
@@ -131,8 +126,8 @@ export function FilterSidebar() {
               key={opt.value}
               label={opt.label}
               count={opt.count}
-              checked={searchParams.get('brand') === opt.value}
-              onChange={(c) => handleFilterChange('brand', opt.value, c)}
+              checked={searchParams.getAll('brand').includes(opt.value)}
+              onChange={(c: boolean) => handleMultiFilterChange('brand', opt.value, c)}
             />
           ))}
         </FilterSection>
@@ -148,8 +143,8 @@ export function FilterSidebar() {
               key={col.id}
               label={col.name}
               count={col.watchCount}
-              checked={searchParams.get('collection') === col.name}
-              onChange={(c) => handleCollectionChange(col.name, c)}
+              checked={searchParams.getAll('collection').includes(col.name)}
+              onChange={(c: boolean) => handleMultiFilterChange('collection', col.name, c)}
             />
           ))}
         </FilterSection>
@@ -165,13 +160,13 @@ export function FilterSidebar() {
               key={opt.value}
               label={opt.label}
               count={opt.count}
-              checked={searchParams.get('gender') === opt.value}
-              onChange={(c) => handleFilterChange('gender', opt.value, c)}
+              checked={searchParams.getAll('gender').includes(opt.value)}
+              onChange={(c: boolean) => handleMultiFilterChange('gender', opt.value, c)}
             />
           ))}
         </FilterSection>
 
-        {/* 4. ЦЕНА */}
+        {/* 4. ЦЕНА (Диапазоны - одиночный выбор) */}
         <FilterSection
           title="ЦЕНА"
           isOpen={openSections.includes('ЦЕНА')}
@@ -182,12 +177,12 @@ export function FilterSidebar() {
               key={range.id}
               label={range.label}
               checked={searchParams.has('minPrice') && Number(searchParams.get('minPrice')) === range.min}
-              onChange={(c) => handleRangeChange('Price', range.min, range.max, c)}
+              onChange={(c: boolean) => handleRangeChange('Price', range.min, range.max, c)}
             />
           ))}
         </FilterSection>
 
-        {/* 5. ДИАМЕТР КОРПУСА */}
+        {/* 5. ДИАМЕТР КОРПУСА (Диапазоны - одиночный выбор) */}
         <FilterSection
           title="ДИАМЕТР КОРПУСА"
           isOpen={openSections.includes('ДИАМЕТР')}
@@ -198,7 +193,7 @@ export function FilterSidebar() {
               key={range.id}
               label={range.label}
               checked={searchParams.has('minDiameter') && Number(searchParams.get('minDiameter')) === range.min}
-              onChange={(c) => handleRangeChange('Diameter', range.min, range.max, c)}
+              onChange={(c: boolean) => handleRangeChange('Diameter', range.min, range.max, c)}
             />
           ))}
         </FilterSection>
@@ -215,7 +210,7 @@ export function FilterSidebar() {
                 key={feature}
                 label={feature}
                 checked={searchParams.getAll('features').includes(feature)}
-                onChange={(c) => handleFeatureChange(feature, c)}
+                onChange={(c: boolean) => handleMultiFilterChange('features', feature, c)}
               />
             ))}
           </FilterSection>
@@ -232,8 +227,8 @@ export function FilterSidebar() {
               key={opt.value}
               label={opt.label}
               count={opt.count}
-              checked={searchParams.get('movement') === opt.value}
-              onChange={(c) => handleFilterChange('movement', opt.value, c)}
+              checked={searchParams.getAll('movement').includes(opt.value)}
+              onChange={(c: boolean) => handleMultiFilterChange('movement', opt.value, c)}
             />
           ))}
         </FilterSection>
@@ -249,8 +244,8 @@ export function FilterSidebar() {
               key={opt.value}
               label={opt.label}
               count={opt.count}
-              checked={searchParams.get('strapMaterial') === opt.value}
-              onChange={(c) => handleFilterChange('strapMaterial', opt.value, c)}
+              checked={searchParams.getAll('strapMaterial').includes(opt.value)}
+              onChange={(c: boolean) => handleMultiFilterChange('strapMaterial', opt.value, c)}
             />
           ))}
         </FilterSection>
@@ -266,8 +261,8 @@ export function FilterSidebar() {
               <CheckboxOption
                 key={opt.value}
                 label={opt.label}
-                checked={searchParams.get('dialColor') === opt.value}
-                onChange={(c) => handleFilterChange('dialColor', opt.value, c)}
+                checked={searchParams.getAll('dialColor').includes(opt.value)}
+                onChange={(c: boolean) => handleMultiFilterChange('dialColor', opt.value, c)}
               />
             ))}
           </div>
@@ -284,8 +279,8 @@ export function FilterSidebar() {
               key={opt.value}
               label={opt.label}
               count={opt.count}
-              checked={searchParams.get('waterResistance') === opt.value}
-              onChange={(c) => handleFilterChange('waterResistance', opt.value, c)}
+              checked={searchParams.getAll('waterResistance').includes(opt.value)}
+              onChange={(c: boolean) => handleMultiFilterChange('waterResistance', opt.value, c)}
             />
           ))}
         </FilterSection>

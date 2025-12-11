@@ -1,81 +1,191 @@
-import React, { useState, useRef, useId } from 'react';
-import { UploadIcon, XIcon, ImageIcon } from 'lucide-react';
-import { api } from '../../services/api';
+import React, { useState } from 'react';
+import { UploadCloudIcon, XIcon, GripVerticalIcon } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  DragEndEvent,
+  DragStartEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 interface ImageUploadProps {
-  value?: string;
-  onChange: (url: string) => void;
-  label?: string;
-  required?: boolean;
+  images: string[];
+  onChange: (images: string[]) => void;
+  onUpload: (files: File[]) => Promise<void>;
+  loading?: boolean;
 }
-export function ImageUpload({
-  value,
-  onChange,
-  label,
-  required
-}: ImageUploadProps) {
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const uniqueId = useId(); // Generate unique ID for each instance
+
+// Компонент одной сортируемой фотографии
+function SortablePhoto({ url, onRemove, index }: { url: string; onRemove: () => void; index: number }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: url });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200"
+    >
+      <img
+        src={url}
+        alt={`Product ${index + 1}`}
+        className="w-full h-full object-contain p-2"
+      />
+
+      {/* Кнопка удаления */}
+      <button
+        type="button"
+        onClick={(e) => {
+           e.stopPropagation(); // Предотвращаем начало перетаскивания при клике
+           onRemove();
+        }}
+        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+      >
+        <XIcon className="w-4 h-4" />
+      </button>
+
+      {/* Хэндл для перетаскивания (необязательно, можно тянуть за всё фото, но с иконкой понятнее) */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-2 left-2 p-1.5 bg-white/80 text-gray-600 rounded cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+      >
+        <GripVerticalIcon className="w-4 h-4" />
+      </div>
+
+      {/* Номер фото */}
+      <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/50 text-white text-[10px] rounded backdrop-blur-sm">
+        {index + 1}
+      </div>
+    </div>
+  );
+}
+
+export function ImageUpload({ images, onChange, onUpload, loading }: ImageUploadProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // Настройка сенсоров (мышь и тач)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Начинать драг только если сдвинули на 8px (чтобы не путать с кликом)
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = images.indexOf(active.id as string);
+      const newIndex = images.indexOf(over.id as string);
+      // Меняем порядок в массиве и отдаем родителю
+      onChange(arrayMove(images, oldIndex, newIndex));
+    }
+
+    setActiveId(null);
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError('Пожалуйста, выберите изображение');
-      return;
-    }
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Файл слишком большой (макс 5MB)');
-      return;
-    }
-    setError('');
-    setUploading(true);
-    try {
-      const data = await api.uploadImage(file);
-      onChange(data.url);
-    } catch (err) {
-      setError('Ошибка загрузки изображения');
-      console.error('Upload error:', err);
-    } finally {
-      setUploading(false);
+    if (e.target.files && e.target.files.length > 0) {
+      await onUpload(Array.from(e.target.files));
+      // Очищаем инпут, чтобы можно было загрузить тот же файл повторно
+      e.target.value = '';
     }
   };
-  const handleRemove = () => {
-    onChange('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-  return <div>
-      {label && <label className="block text-sm font-medium tracking-wider uppercase mb-3">
-          {label} {required && <span className="text-[#C8102E]">*</span>}
-        </label>}
 
-      {value ? <div className="relative border-2 border-black/10 p-4">
-          <img src={value} alt="Preview" className="w-full h-48 object-contain bg-gray-50" />
-          <button type="button" onClick={handleRemove} className="absolute top-2 right-2 p-2 bg-white border-2 border-black hover:bg-red-50 hover:border-red-500 transition-colors">
-            <XIcon className="w-4 h-4" strokeWidth={2} />
-          </button>
-        </div> : <div className="border-2 border-dashed border-black/20 hover:border-[#C8102E] transition-colors">
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} className="hidden" id={`image-upload-${uniqueId}`} disabled={uploading} />
-          <label htmlFor={`image-upload-${uniqueId}`} className="block p-12 text-center cursor-pointer">
-            {uploading ? <div className="space-y-4">
-                <div className="w-12 h-12 mx-auto border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm text-black/60">Загрузка...</p>
-              </div> : <div className="space-y-4">
-                <ImageIcon className="w-12 h-12 mx-auto text-black/40" strokeWidth={1.5} />
-                <div>
-                  <p className="text-sm font-medium text-black mb-1">
-                    Нажмите для загрузки изображения
-                  </p>
-                  <p className="text-xs text-black/50">PNG, JPG, WEBP до 5MB</p>
-                </div>
-              </div>}
-          </label>
-        </div>}
+  return (
+    <div className="space-y-4">
+      {/* Зона загрузки */}
+      <div className="flex items-center justify-center w-full">
+        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            {loading ? (
+              <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <UploadCloudIcon className="w-8 h-8 mb-2 text-gray-400" />
+                <p className="text-sm text-gray-500">
+                  <span className="font-semibold">Нажмите для загрузки</span> или перетащите файлы
+                </p>
+              </>
+            )}
+          </div>
+          <input
+            type="file"
+            className="hidden"
+            multiple
+            accept="image/*"
+            onChange={handleFileChange}
+            disabled={loading}
+          />
+        </label>
+      </div>
 
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-    </div>;
+      {/* Сортируемая сетка изображений */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={images} strategy={rectSortingStrategy}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {images.map((url, index) => (
+              <SortablePhoto
+                key={url}
+                url={url}
+                index={index}
+                onRemove={() => onChange(images.filter((img) => img !== url))}
+              />
+            ))}
+          </div>
+        </SortableContext>
+
+        {/* Оверлей перетаскиваемого элемента (для красоты) */}
+        <DragOverlay adjustScale={true}>
+          {activeId ? (
+            <div className="aspect-square bg-white rounded-lg overflow-hidden border-2 border-blue-500 shadow-xl opacity-90">
+              <img
+                src={activeId}
+                alt="Dragging"
+                className="w-full h-full object-contain p-2"
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
+  );
 }
