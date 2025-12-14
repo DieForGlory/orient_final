@@ -62,6 +62,23 @@ interface HistoryEvent {
 export function AdminContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false); // <--- Добавлено
+
+  // Функция для загрузки (копируем её сюда)
+  const handleUpload = async (files: File[]): Promise<string[]> => {
+    setUploading(true);
+    try {
+      const promises = files.map(file => api.uploadImage(file));
+      const responses = await Promise.all(promises);
+      return responses.map(r => r.url);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Ошибка загрузки');
+      return [];
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Site Logo
   const [siteLogo, setSiteLogo] = useState<SiteLogo>({
@@ -315,18 +332,28 @@ export function AdminContent() {
 
         <div className="space-y-6">
           <ImageUpload
-            value={siteLogo.logoUrl}
-            onChange={(url) => setSiteLogo({ ...siteLogo, logoUrl: url })}
-            label="Логотип (светлый фон)"
-            required
+            images={siteLogo.logoUrl ? [siteLogo.logoUrl] : []}
+            onChange={(urls) => setSiteLogo({ ...siteLogo, logoUrl: urls[0] || '' })}
+            onUpload={async (files) => {
+              const urls = await handleUpload(files);
+              if (urls.length) setSiteLogo({ ...siteLogo, logoUrl: urls[0] });
+            }}
+            loading={uploading}
+            // label удален или заменен на заголовок над компонентом, если компонент его не поддерживает,
+            // но в вашем коде ImageUpload лейблы не рендерит внутри, лучше добавить <label> снаружи, если нужно
           />
+          <p className="text-sm text-gray-500 -mt-3 mb-4">Логотип (светлый фон)</p>
 
           <ImageUpload
-            value={siteLogo.logoDarkUrl || ''}
-            onChange={(url) => setSiteLogo({ ...siteLogo, logoDarkUrl: url || null })}
-            label="Логотип (темный фон)"
-            required={false}
+            images={siteLogo.logoDarkUrl ? [siteLogo.logoDarkUrl] : []}
+            onChange={(urls) => setSiteLogo({ ...siteLogo, logoDarkUrl: urls[0] || null })}
+            onUpload={async (files) => {
+              const urls = await handleUpload(files);
+              if (urls.length) setSiteLogo({ ...siteLogo, logoDarkUrl: urls[0] });
+            }}
+            loading={uploading}
           />
+          <p className="text-sm text-gray-500 -mt-3 mb-4">Логотип (темный фон)</p>
 
           <div className="bg-gray-50 p-4 border-2 border-gray-200">
             <p className="text-sm text-black/60 mb-3">
@@ -399,19 +426,29 @@ export function AdminContent() {
             />
           </div>
 
-          <ImageUpload
-            value={heroContent.image}
-            onChange={(url) => setHeroContent({ ...heroContent, image: url })}
-            label="Изображение (Desktop)"
-            required
-          />
+          <label className="block text-sm font-medium tracking-wider uppercase mb-2">Изображение (Desktop)</label>
+            <ImageUpload
+              images={heroContent.image ? [heroContent.image] : []}
+              onChange={(urls) => setHeroContent({ ...heroContent, image: urls[0] || '' })}
+              onUpload={async (files) => {
+                const urls = await handleUpload(files);
+                if (urls.length) setHeroContent({ ...heroContent, image: urls[0] });
+              }}
+              loading={uploading}
+            />
 
-          <ImageUpload
-            value={heroContent.mobileImage || ''}
-            onChange={(url) => setHeroContent({ ...heroContent, mobileImage: url })}
-            label="Изображение (Mobile)"
-            required={false} // Не обязательно, fallback на десктоп
-          />
+            <div className="mt-4">
+              <label className="block text-sm font-medium tracking-wider uppercase mb-2">Изображение (Mobile)</label>
+              <ImageUpload
+                images={heroContent.mobileImage ? [heroContent.mobileImage] : []}
+                onChange={(urls) => setHeroContent({ ...heroContent, mobileImage: urls[0] || '' })}
+                onUpload={async (files) => {
+                  const urls = await handleUpload(files);
+                  if (urls.length) setHeroContent({ ...heroContent, mobileImage: urls[0] });
+                }}
+                loading={uploading}
+              />
+            </div>
           <p className="text-xs text-black/50 -mt-4 mb-4">
             Рекомендуемый формат для мобильных: вертикальный (9:16). Если не загружено, будет использоваться Desktop версия.
           </p>
@@ -963,12 +1000,16 @@ export function AdminContent() {
                 />
               </div>
 
-              <ImageUpload
-                value={editingEvent.image}
-                onChange={url => setEditingEvent({ ...editingEvent, image: url })}
-                label="Фотография события"
-                required
-              />
+              <label className="block text-sm font-medium tracking-wider uppercase mb-2">Фотография события</label>
+                <ImageUpload
+                  images={editingEvent.image ? [editingEvent.image] : []}
+                  onChange={(urls) => setEditingEvent({ ...editingEvent, image: urls[0] || '' })}
+                  onUpload={async (files) => {
+                    const urls = await handleUpload(files);
+                    if (urls.length) setEditingEvent({ ...editingEvent, image: urls[0] });
+                  }}
+                  loading={uploading}
+                />
 
               <div className="flex justify-end pt-4">
                 <button

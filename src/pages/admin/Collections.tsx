@@ -30,6 +30,9 @@ export function AdminCollections() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
 
+  // 1. Добавлено состояние загрузки
+  const [uploading, setUploading] = useState(false);
+
   const [formData, setFormData] = useState<CollectionFormData>({
     id: '',
     name: '',
@@ -115,6 +118,23 @@ export function AdminCollections() {
     } catch (error) {
       console.error('Error deleting collection:', error);
       alert('Ошибка удаления');
+    }
+  };
+
+  // 2. Добавлена функция загрузки
+  const handleImageUpload = async (files: File[]) => {
+    setUploading(true);
+    try {
+      const promises = files.map(file => api.uploadImage(file));
+      const responses = await Promise.all(promises);
+      if (responses.length > 0) {
+        setFormData(prev => ({ ...prev, image: responses[0].url }));
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Ошибка загрузки');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -223,7 +243,14 @@ export function AdminCollections() {
                 <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={3} className="w-full px-4 py-3 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none resize-none" required />
               </div>
 
-              <ImageUpload value={formData.image} onChange={url => setFormData({...formData, image: url})} label="Изображение" required />
+              {/* 3. Исправленный компонент ImageUpload */}
+              <label className="block text-sm font-medium tracking-wider uppercase mb-3">Изображение</label>
+              <ImageUpload
+                images={formData.image ? [formData.image] : []}
+                onChange={(newImages) => setFormData({...formData, image: newImages[0] || ''})}
+                onUpload={handleImageUpload}
+                loading={uploading}
+              />
 
               <div>
                 <label className="flex items-center space-x-3 cursor-pointer">
@@ -233,7 +260,7 @@ export function AdminCollections() {
               </div>
 
               <div className="pt-6 border-t-2 border-black/10">
-                <button type="submit" className="w-full bg-[#C8102E] hover:bg-[#A00D24] text-white py-4 text-sm font-semibold uppercase tracking-wider transition-all">
+                <button type="submit" disabled={uploading} className="w-full bg-[#C8102E] hover:bg-[#A00D24] text-white py-4 text-sm font-semibold uppercase tracking-wider transition-all disabled:opacity-50">
                   <SaveIcon className="w-5 h-5 inline mr-2" /> Сохранить
                 </button>
               </div>

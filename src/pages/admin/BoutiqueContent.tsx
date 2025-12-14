@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SaveIcon, PlusIcon, TrashIcon, GripVerticalIcon } from 'lucide-react';
+import { SaveIcon, PlusIcon, TrashIcon } from 'lucide-react';
 import { api } from '../../services/api';
 import { ImageUpload } from '../../components/admin/ImageUpload';
 
@@ -35,6 +35,7 @@ interface GalleryItem {
 export function BoutiqueContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false); // Добавлено состояние загрузки
 
   // Состояния
   const [hero, setHero] = useState<BoutiqueHero>({
@@ -92,6 +93,23 @@ export function BoutiqueContent() {
       alert('Ошибка сохранения');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // --- Upload Helper ---
+  // Функция для обработки загрузки файлов через API
+  const handleUploadFiles = async (files: File[]): Promise<string[]> => {
+    setUploading(true);
+    try {
+      const promises = files.map(file => api.uploadImage(file));
+      const responses = await Promise.all(promises);
+      return responses.map(r => r.url);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Ошибка при загрузке изображения');
+      return [];
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -181,12 +199,18 @@ export function BoutiqueContent() {
             />
           </div>
 
-          <ImageUpload
-            value={hero.coverImage}
-            onChange={url => setHero({...hero, coverImage: url})}
-            label="Фоновое изображение"
-            required
-          />
+          <div>
+            <label className="block text-sm font-medium tracking-wider uppercase mb-2">Фоновое изображение</label>
+            <ImageUpload
+              images={hero.coverImage ? [hero.coverImage] : []}
+              onChange={(newImages) => setHero({ ...hero, coverImage: newImages[0] || '' })}
+              onUpload={async (files) => {
+                const urls = await handleUploadFiles(files);
+                if (urls.length) setHero({ ...hero, coverImage: urls[0] });
+              }}
+              loading={uploading}
+            />
+          </div>
         </div>
       </div>
 
@@ -240,11 +264,18 @@ export function BoutiqueContent() {
             />
           </div>
 
-          <ImageUpload
-            value={infoBlock.image}
-            onChange={url => setInfoBlock({...infoBlock, image: url})}
-            label="Фотография интерьера"
-          />
+          <div>
+            <label className="block text-sm font-medium tracking-wider uppercase mb-2">Фотография интерьера</label>
+            <ImageUpload
+              images={infoBlock.image ? [infoBlock.image] : []}
+              onChange={(newImages) => setInfoBlock({ ...infoBlock, image: newImages[0] || '' })}
+              onUpload={async (files) => {
+                const urls = await handleUploadFiles(files);
+                if (urls.length) setInfoBlock({ ...infoBlock, image: urls[0] });
+              }}
+              loading={uploading}
+            />
+          </div>
         </div>
       </div>
 
@@ -313,15 +344,18 @@ export function BoutiqueContent() {
             <div key={item.id} className="relative group">
               <div className="border-2 border-black/10 bg-gray-50 p-2">
                 <ImageUpload
-                  value={item.url}
-                  onChange={url => updateGalleryImage(item.id, url)}
-                  label=""
-                  height="h-48"
+                  images={item.url ? [item.url] : []}
+                  onChange={(newImages) => updateGalleryImage(item.id, newImages[0] || '')}
+                  onUpload={async (files) => {
+                    const urls = await handleUploadFiles(files);
+                    if (urls.length) updateGalleryImage(item.id, urls[0]);
+                  }}
+                  loading={uploading}
                 />
               </div>
               <button
                 onClick={() => removeGalleryImage(item.id)}
-                className="absolute top-4 right-4 bg-white text-[#C8102E] p-2 shadow-md hover:bg-[#C8102E] hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                className="absolute top-4 right-4 bg-white text-[#C8102E] p-2 shadow-md hover:bg-[#C8102E] hover:text-white transition-all opacity-0 group-hover:opacity-100 z-10"
               >
                 <TrashIcon className="w-4 h-4" />
               </button>
