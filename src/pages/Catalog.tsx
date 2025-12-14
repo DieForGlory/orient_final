@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { ProductCard } from '../components/ProductCard';
-import { SlidersHorizontalIcon, XIcon, GridIcon, ListIcon } from 'lucide-react';
+import { SlidersHorizontalIcon, XIcon, GridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
-import { SEO } from '../components/SEO'; // Добавлен импорт
+import { SEO } from '../components/SEO';
 
 interface Product {
   id: string;
@@ -62,6 +62,7 @@ export function Catalog() {
   };
 
   const handlePageChange = (page: number) => {
+    if (page < 1 || page > pagination.totalPages) return;
     searchParams.set('page', page.toString());
     setSearchParams(searchParams);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -81,7 +82,6 @@ export function Catalog() {
     setSearchParams(searchParams);
   };
 
-  // Исправлено: Оставлена только одна декларация activeFilters
   const activeFilters = Array.from(searchParams.entries()).filter(([key]) => !['page', 'limit', 'sort'].includes(key));
 
   return (
@@ -179,14 +179,49 @@ export function Catalog() {
                 <div className={`grid gap-6 sm:gap-8 lg:gap-12 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
                   {products.map((product, index) => <ProductCard key={product.id} {...product} index={index} />)}
                 </div>
+
+                {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                  <div className="mt-12 sm:mt-20 flex flex-col items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
-                        <button key={page} onClick={() => handlePageChange(page)} className={`px-4 py-2 border-2 transition-all ${pagination.page === page ? 'bg-[#C8102E] text-white border-[#C8102E]' : 'border-black/20 hover:border-black'}`}>
-                          {page}
-                        </button>
-                      ))}
+                  <div className="mt-12 sm:mt-20 w-full">
+                    <div className="flex items-center justify-center gap-2 sm:gap-4 w-full">
+
+                      {/* Кнопка Назад */}
+                      <button
+                        onClick={() => handlePageChange(pagination.page - 1)}
+                        disabled={pagination.page === 1}
+                        className="p-3 border-2 border-black/10 hover:border-black disabled:opacity-30 disabled:hover:border-black/10 transition-all flex-shrink-0"
+                        aria-label="Предыдущая страница"
+                      >
+                        <ChevronLeftIcon className="w-5 h-5" />
+                      </button>
+
+                      {/* Список страниц (с прокруткой) */}
+                      <div className="flex gap-2 overflow-x-auto max-w-[200px] sm:max-w-none px-1 py-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                        {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`px-4 py-2 border-2 transition-all flex-shrink-0 min-w-[45px] ${
+                              pagination.page === page
+                                ? 'bg-[#C8102E] text-white border-[#C8102E]'
+                                : 'border-black/10 hover:border-black'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Кнопка Вперед */}
+                      <button
+                        onClick={() => handlePageChange(pagination.page + 1)}
+                        disabled={pagination.page === pagination.totalPages}
+                        className="p-3 border-2 border-black/10 hover:border-black disabled:opacity-30 disabled:hover:border-black/10 transition-all flex-shrink-0"
+                        aria-label="Следующая страница"
+                      >
+                        <ChevronRightIcon className="w-5 h-5" />
+                      </button>
+
                     </div>
                   </div>
                 )}
