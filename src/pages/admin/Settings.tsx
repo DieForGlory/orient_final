@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { SaveIcon } from 'lucide-react';
+import { SaveIcon, Send } from 'lucide-react'; // Добавили иконку Send
 import { api } from '../../services/api';
+
 interface Settings {
   site: {
     name: string;
@@ -22,7 +23,13 @@ interface Settings {
     instagram: string;
     twitter: string;
   };
+  // 1. Добавляем секцию telegram в интерфейс
+  telegram: {
+    botToken: string;
+    chatIds: string;
+  };
 }
+
 const DEFAULT_SETTINGS: Settings = {
   site: {
     name: 'Orient Watch',
@@ -43,28 +50,41 @@ const DEFAULT_SETTINGS: Settings = {
     facebook: 'https://facebook.com/orient',
     instagram: 'https://instagram.com/orient',
     twitter: 'https://twitter.com/orient'
+  },
+  // 2. Добавляем значения по умолчанию
+  telegram: {
+    botToken: '',
+    chatIds: ''
   }
 };
+
 export function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+
   useEffect(() => {
     fetchSettings();
   }, []);
+
   const fetchSettings = async () => {
     setLoading(true);
     try {
       const data = await api.getSettings();
-      setSettings(data);
+      // Объединяем полученные данные с дефолтными, чтобы гарантировать наличие поля telegram
+      setSettings({
+        ...DEFAULT_SETTINGS,
+        ...data,
+        telegram: data.telegram || DEFAULT_SETTINGS.telegram
+      });
     } catch (error) {
       console.error('Error fetching settings:', error);
-      // Use default settings on error
       setSettings(DEFAULT_SETTINGS);
     } finally {
       setLoading(false);
     }
   };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -77,22 +97,90 @@ export function AdminSettings() {
       setSaving(false);
     }
   };
+
   if (loading) {
-    return <div className="flex items-center justify-center min-h-[400px]">
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="space-y-8">
+
+  return (
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold tracking-tight mb-2">Настройки</h1>
           <p className="text-black/60">Настройки сайта и магазина</p>
         </div>
-        <button onClick={handleSave} disabled={saving} className="flex items-center space-x-2 bg-[#C8102E] hover:bg-[#A00D24] text-white px-8 py-4 text-sm font-semibold uppercase tracking-wider transition-all disabled:opacity-50">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center space-x-2 bg-[#C8102E] hover:bg-[#A00D24] text-white px-8 py-4 text-sm font-semibold uppercase tracking-wider transition-all disabled:opacity-50"
+        >
           <SaveIcon className="w-5 h-5" strokeWidth={2} />
           <span>{saving ? 'Сохранение...' : 'Сохранить все'}</span>
         </button>
+      </div>
+
+      {/* 3. Новый блок: Telegram Bot */}
+      <div className="bg-white p-8 border-2 border-blue-100 shadow-sm">
+        <div className="flex items-center mb-6">
+          <div className="bg-blue-100 p-2 rounded-full mr-3">
+             <Send className="w-6 h-6 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight uppercase text-blue-900">
+            Telegram Уведомления
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          <div>
+            <label className="block text-sm font-medium tracking-wider uppercase mb-3">
+              Токен бота (Bot Token)
+            </label>
+            <input
+              type="text"
+              value={settings.telegram.botToken}
+              onChange={(e) => setSettings({
+                ...settings,
+                telegram: {
+                  ...settings.telegram,
+                  botToken: e.target.value
+                }
+              })}
+              className="w-full px-4 py-3 border-2 border-black/20 focus:border-blue-500 focus:outline-none font-mono text-sm"
+              placeholder="123456789:AAHE..."
+            />
+            <p className="text-xs text-black/50 mt-2">
+              Получите токен у <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">@BotFather</a>
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium tracking-wider uppercase mb-3">
+              ID Получателей (Chat IDs)
+            </label>
+            <input
+              type="text"
+              value={settings.telegram.chatIds}
+              onChange={(e) => setSettings({
+                ...settings,
+                telegram: {
+                  ...settings.telegram,
+                  chatIds: e.target.value
+                }
+              })}
+              className="w-full px-4 py-3 border-2 border-black/20 focus:border-blue-500 focus:outline-none font-mono text-sm"
+              placeholder="12345678, 87654321"
+            />
+            <p className="text-xs text-black/50 mt-2">
+              Укажите ID через запятую. Узнать свой ID можно через <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">@userinfobot</a>.
+              <span className="text-red-500 ml-1 font-bold">Обязательно запустите бота (/start) перед проверкой!</span>
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Site Info */}
@@ -297,5 +385,6 @@ export function AdminSettings() {
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 }

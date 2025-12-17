@@ -20,6 +20,7 @@ interface FormData {
   // Options
   deliveryMethod: 'standard' | 'express' | 'pickup';
   paymentMethod: 'payme' | 'click' | 'cash';
+  website_check?: string;
 }
 
 // Интерфейс для промокода
@@ -55,7 +56,8 @@ export function Cart() {
     postalCode: '',
     country: 'Узбекистан',
     deliveryMethod: 'standard',
-    paymentMethod: 'payme'
+    paymentMethod: 'payme',
+    website_check: ''
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -623,6 +625,17 @@ export function Cart() {
                     <div className="flex justify-between items-baseline mb-6">
                       <span className="text-lg font-bold">Итого</span>
                       <span className="text-3xl font-bold text-[#C8102E]">{formatPrice(total)}</span>
+                    </div>
+                    <div className="absolute opacity-0 -z-10 h-0 w-0 overflow-hidden">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        tabIndex={-1}
+                        name="website_check"
+                        placeholder="Website"
+                        value={formData.website_check || ''}
+                        onChange={e => handleInputChange('website_check', e.target.value)}
+                      />
                     </div>
                     <button type="submit" disabled={submitting} className="w-full bg-[#C8102E] hover:bg-[#A00D24] text-white py-5 text-sm tracking-[0.2em] font-semibold transition-all duration-500 uppercase mb-4 disabled:opacity-50 disabled:cursor-not-allowed">
                       {submitting ? 'Оформление...' : 'Оформить заказ'}

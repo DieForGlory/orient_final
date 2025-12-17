@@ -174,6 +174,7 @@ class OrderCreate(BaseModel):
     shipping: float
     total: float
     notes: Optional[str] = None
+    website_check: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
     status: str
@@ -223,7 +224,7 @@ class BookingCreate(BaseModel):
     time: str
     message: Optional[str] = None
     boutique: Optional[str] = "Orient Ташкент"
-
+    website_check: Optional[str] = None
 class BookingUpdate(BaseModel):
     status: str  # pending, confirmed, completed, cancelled
 

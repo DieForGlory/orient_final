@@ -16,7 +16,8 @@ export function Boutique() {
     email: '',
     date: '',
     time: '',
-    message: ''
+    message: '',
+    website_check: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -329,7 +330,17 @@ export function Boutique() {
                 <textarea value={formData.message} onChange={e => handleInputChange('message', e.target.value)} rows={4} className="w-full max-w-full px-4 sm:px-6 py-3 sm:py-4 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none transition-colors resize-none" placeholder="Расскажите, какие часы вас интересуют..." disabled={submitting} />
               </div>
             </div>
-
+            <div className="absolute opacity-0 -z-10 h-0 w-0 overflow-hidden">
+              <input
+                type="text"
+                autoComplete="off"
+                tabIndex={-1}
+                name="website_check"
+                placeholder="Website"
+                value={(formData as any).website_check}
+                onChange={e => handleInputChange('website_check', e.target.value)}
+              />
+            </div>
             <div className="flex flex-col items-center space-y-4 pt-4">
               <button type="submit" disabled={submitting} className="bg-[#C8102E] hover:bg-[#A00D24] text-white px-12 sm:px-16 py-4 sm:py-5 text-xs sm:text-sm tracking-[0.2em] font-semibold transition-all duration-500 uppercase inline-flex items-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitting ? <>

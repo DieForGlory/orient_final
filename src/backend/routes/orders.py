@@ -23,6 +23,9 @@ def generate_order_number():
 async def create_order(order: OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Create new order (public endpoint)"""
     # Generate order number
+    if order.website_check:
+        # Можно вернуть ошибку, но лучше вернуть "Успех", чтобы бот думал, что все ок
+        return {"message": "Order created successfully", "orderNumber": "BOT-IGNORED", "id": -1}
     order_number = generate_order_number()
     
     # Create order

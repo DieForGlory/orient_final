@@ -73,7 +73,7 @@ app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 # 2. Статика фронтенда (JS/CSS) - Исправленный путь
 # Вычисляем корень проекта (на 3 уровня выше текущего файла)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+BASE_DIR = "/var/www/orient"
 DIST_ASSETS = os.path.join(BASE_DIR, "dist", "assets")
 
 # Подключаем assets ТОЛЬКО если папка существует (после билда фронтенда)

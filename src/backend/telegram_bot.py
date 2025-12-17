@@ -34,6 +34,7 @@ async def broadcast_message(db: Session, message: str):
         await asyncio.gather(*tasks)
 
 
+# --- Уведомления о ЗАКАЗАХ ---
 async def notify_new_order(db: Session, order):
     try:
         customer = json.loads(order.customer_data) if order.customer_data else {}
@@ -65,3 +66,36 @@ async def notify_order_status(db: Session, order_number: str, old_status: str, n
         await broadcast_message(db, msg)
     except Exception as e:
         print(f"Failed to prepare status notification: {e}")
+
+
+# --- Уведомления о БРОНИРОВАНИЯХ (НОВОЕ) ---
+async def notify_new_booking(db: Session, booking):
+    try:
+        msg = (
+            f"📅 <b>Новая запись в бутик!</b>\n\n"
+            f"🆔 <b>Номер:</b> {booking.booking_number}\n"
+            f"👤 <b>Имя:</b> {booking.name}\n"
+            f"📞 <b>Телефон:</b> {booking.phone}\n"
+            f"🗓 <b>Дата:</b> {booking.date}\n"
+            f"⏰ <b>Время:</b> {booking.time}\n"
+            f"📍 <b>Бутик:</b> {booking.boutique}\n"
+        )
+        if booking.message:
+            msg += f"💬 <b>Комментарий:</b> {booking.message}"
+
+        await broadcast_message(db, msg)
+    except Exception as e:
+        print(f"Failed to prepare booking notification: {e}")
+
+
+async def notify_booking_status(db: Session, booking_number: str, old_status: str, new_status: str):
+    try:
+        msg = (
+            f"🔄 <b>Статус записи изменен</b>\n\n"
+            f"🆔 <b>Номер:</b> {booking_number}\n"
+            f"▫️ <b>Было:</b> {old_status}\n"
+            f"▪️ <b>Стало:</b> {new_status}"
+        )
+        await broadcast_message(db, msg)
+    except Exception as e:
+        print(f"Failed to prepare booking status notification: {e}")

@@ -185,11 +185,17 @@ class ApiService {
   }
 
   // Bookings
-  getBookings(status?: string) {
-    const queryParams = new URLSearchParams();
-    if (status) queryParams.append('status', status);
-    const query = queryParams.toString();
-    return this.request(`/api/admin/bookings${query ? `?${query}` : ''}`);
+  getBookings(status?: string, page: number = 1, limit: number = 20) {
+    const params = new URLSearchParams();
+
+    // Добавляем статус только если он есть
+    if (status) params.append('status', status);
+
+    // Добавляем пагинацию
+    params.append('page', page.toString());
+    params.append('limit', limit.toString());
+
+    return this.request(`/api/admin/bookings?${params.toString()}`);
   }
   getBooking(id: number) { return this.request(`/api/admin/bookings/${id}`); }
 

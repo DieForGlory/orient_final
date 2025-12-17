@@ -8,60 +8,61 @@ import json
 
 router = APIRouter()
 
-# --- 1. SEO ДАННЫЕ ИЗ ВАШЕГО ФАЙЛА ---
+# --- 1. SEO ДАННЫЕ (Статические страницы) ---
 STATIC_SEO = {
-    # Главная страница
     "": {
         "title": "Orient Watch Uzbekistan. Купить часы Orient в Ташкенте. Официальный дилер Orient Watch в Узбекистане.",
         "description": "Оригинальные японские часы Orient в Узбекистане. Купить механические и кварцевые часы с официальной гарантией 2 года. Доставка по Ташкенту и всему Узбекистану."
     },
-    # Бутик
     "boutique": {
         "title": "Бутик Официального дилера Orient Watch в Узбекистане | Orient Watch Uzbekistan",
-        "description": "Официальный Бутик Orient Watch в Ташкенте: г.Ташкент, ул.Аккурган, 24, +998 88 281-28-28, Пн-Сб: 11:00 - 19:00 Вс: 12:00 - 18:00. Запишитесь на примерку оригинальных японских часов с гарантией. Официальный дилер Orient Watch в Узбекистане."
+        "description": "Официальный Бутик Orient Watch в Ташкенте: г.Ташкент, ул.Аккурган, 24, +998 88 281-28-28. Запишитесь на примерку оригинальных японских часов с гарантией."
     },
-    # История
     "history": {
         "title": "История бренда Orient Watch – С 1950 года японское мастерство часов | Orient Watch Uzbekistan",
-        "description": "Изучите историю Orient Watch: от основания в 1950 году в Японии - до инноваций в механических часах. Ключевые milestones, традиции качества и глобальный успех. Официальный сайт в Узбекистане. Официальный дилер Orient Watch в Узбекистане."
+        "description": "Изучите историю Orient Watch: от основания в 1950 году в Японии до инноваций в механических часах. Ключевые milestones, традиции качества и глобальный успех."
     },
-    # Каталог
     "catalog": {
-        "title": "Каталог часов Orient Watch – Все модели и официальные цены в Узбекистане | Orient Watch Uzbekistan",
-        "description": "Каталог оригинальных часов Orient Watch Uzbekistan: механические, кварцевые, дайверы и классика. Купить с доставкой по Узбексистану. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
+        "title": "Каталог часов Orient Watch – Все модели и официальные цены в Узбекистане",
+        "description": "Каталог оригинальных часов Orient Watch Uzbekistan: механические, кварцевые, дайверы и классика. Купить с доставкой по Узбекистану. Гарантия 2 года."
     },
-    # Коллекции (общая)
     "collections": {
-        "title": "Коллекции Orient Watch – Sports, Classic, Bambino, Revival, Contemporary |Orient Watch Uzbekistan",
-        "description": "Обзор коллекций часов Orient. Купить с доставкой по Узбексистану. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
+        "title": "Коллекции Orient Watch – Sports, Classic, Bambino, Revival, Contemporary",
+        "description": "Обзор коллекций часов Orient. Купить с доставкой по Узбекистану. Гарантия 2 года."
     },
-    # --- КОЛЛЕКЦИИ ---
+    # Статические коллекции (если они не в базе)
     "collection/sports": {
-        "title": "Коллекция Sports Orient Watch – Спортивные часы для активного образа | Orient Watch Uzbekistan",
-        "description": "Спортивные часы Orient Sports: водозащита до 200м, ударопрочность и надежный механизм. Идеальный выбор для дайвинга и спорта. Купить с доставкой по Узбекистану."
+        "title": "Коллекция Sports Orient Watch – Спортивные часы для активного образа",
+        "description": "Спортивные часы Orient Sports: водозащита до 200м, ударопрочность и надежный механизм. Идеальный выбор для дайвинга и спорта."
     },
     "collection/contemporary": {
-        "title": "Коллекция Contemporary Orient – Современные часы | Orient Watch Uzbekistan",
-        "description": "Современные часы Orient Contemporary: минималистичный дизайн, многофункциональные циферблаты, кварц и автомат. Купить с доставкой по Узбексистану. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
+        "title": "Коллекция Contemporary Orient – Современные часы",
+        "description": "Современные часы Orient Contemporary: минималистичный дизайн, многофункциональные циферблаты, кварц и автомат."
     },
     "collection/revival": {
-        "title": "Коллекция Revival Orient – Ретро-часы с винтажным шармом | Orient Watch Uzbekistan",
-        "description": "Ретро-часы Orient Revival: винтажный дизайн, механика и кварц, аутентичные дизайны. Купить с доставкой по Узбексистану. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
+        "title": "Коллекция Revival Orient – Ретро-часы с винтажным шармом",
+        "description": "Ретро-часы Orient Revival: винтажный дизайн, механика и кварц, аутентичные дизайны."
     },
     "collection/bambino": {
-        "title": "Коллекция Bambino Orient – Классика с открытым балансом | Orient Watch Uzbekistan",
-        "description": "Bambino Orient: автоматические часы с open heart, выпуклым стеклом и римскими цифрами. Купить с доставкой по Узбексистану. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
+        "title": "Коллекция Bambino Orient – Классика с открытым балансом",
+        "description": "Bambino Orient: автоматические часы с open heart, выпуклым стеклом и римскими цифрами."
     }
 }
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+# Определяем пути (поднимаемся на 3 уровня вверх от текущего файла)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+# Проверка: если папка dist не найдена, пробуем другой уровень вложенности (на случай запуска из venv)
+if not os.path.exists(os.path.join(BASE_DIR, "dist")):
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
 DIST_DIR = os.path.join(BASE_DIR, "dist")
 INDEX_PATH = os.path.join(DIST_DIR, "index.html")
 
 
 @router.get("/{full_path:path}")
 async def serve_spa(request: Request, full_path: str, db: Session = Depends(get_db)):
-    # 1. Если это файл (есть точка в конце, например .js, .png), отдаем 404
+    # 1. Если это файл (есть точка в конце, например .js, .png), отдаем 404 (пусть ищет Nginx)
     if "." in full_path.split("/")[-1]:
         return Response(status_code=404)
 
@@ -79,42 +80,75 @@ async def serve_spa(request: Request, full_path: str, db: Session = Depends(get_
 
     clean_path = full_path.strip("/")
 
-    # --- ЛОГИКА ---
+    # --- ЛОГИКА ПОДМЕНЫ ---
+
+    # 1. Статические страницы (из словаря выше)
     if clean_path in STATIC_SEO:
         data = STATIC_SEO[clean_path]
         final_title = data["title"]
         final_desc = data["description"]
 
+    # 2. Страница товара: /product/ID
     elif clean_path.startswith("product/"):
-        slug = clean_path.split("/")[-1]
-        product = db.query(Product).filter(Product.slug == slug).first()
+        product_id = clean_path.split("/")[-1]
+
+        # !!! ИСПРАВЛЕНИЕ: Ищем по ID, а не по slug !!!
+        product = db.query(Product).filter(Product.id == product_id).first()
+
         if product:
-            final_title = f"{product.name} | Orient Watch Uzbekistan"
-            final_desc = product.meta_description if product.meta_description else f"Купить часы {product.name}. Артикул: {product.sku}."
+            # Заголовок
+            final_title = product.seo_title if product.seo_title else f"{product.name} | Orient Watch Uzbekistan"
+
+            # Описание
+            if product.seo_description:
+                final_desc = product.seo_description
+            elif product.description:
+                # Убираем HTML теги из описания для мета-тега
+                clean_desc = re.sub('<[^<]+?>', '', product.description)
+                final_desc = clean_desc[:160]  # Ограничиваем длину
+            else:
+                final_desc = f"Купить {product.name}. Артикул: {product.sku}. Официальная гарантия."
+
+            # Картинка
             if product.images:
                 try:
                     images = json.loads(product.images)
-                    if images: final_image = f"/uploads/{images[0]}"
+                    if images and len(images) > 0:
+                        final_image = images[0]
                 except:
                     pass
 
+    # 3. Страница коллекции: /collection/ID
     elif clean_path.startswith("collection/") and clean_path not in STATIC_SEO:
-        slug = clean_path.split("/")[-1]
-        collection = db.query(Collection).filter(Collection.slug == slug).first()
+        collection_id = clean_path.split("/")[-1]
+
+        # !!! ИСПРАВЛЕНИЕ: Ищем по ID или Name !!!
+        collection = db.query(Collection).filter(Collection.id == collection_id).first()
+        # Если по ID не нашли, пробуем по имени (на случай ссылок вида /collection/sports)
+        if not collection:
+            collection = db.query(Collection).filter(Collection.name == collection_id).first()
+
         if collection:
             final_title = f"Коллекция {collection.name} | Orient Watch"
-            final_desc = collection.description[:200] if collection.description else final_desc
+            if collection.description:
+                final_desc = re.sub('<[^<]+?>', '', collection.description)[:160]
 
-    # --- ЗАМЕНА ---
+    # --- ЗАМЕНА В HTML ---
+
+    # Замена Title
     html_content = re.sub(r"<title>.*?</title>", f"<title>{final_title}</title>", html_content, flags=re.DOTALL)
 
+    # Замена Description
     meta_desc_tag = f'<meta name="description" content="{final_desc}" />'
     if '<meta name="description"' in html_content:
         html_content = re.sub(r'<meta name="description" content="[^"]*"\s*/?>', meta_desc_tag, html_content)
     else:
+        # Если тега нет, добавляем перед закрывающим head
         html_content = html_content.replace("</head>", f"{meta_desc_tag}\n</head>")
 
-    full_image_url = f"https://orientwatch.uz{final_image}" if final_image.startswith("/") else final_image
+    # Добавление Open Graph (для соцсетей и мессенджеров)
+    full_image_url = final_image if final_image.startswith("http") else f"https://orientwatch.uz{final_image}"
+
     og_tags = f"""
     <meta property="og:title" content="{final_title}" />
     <meta property="og:description" content="{final_desc}" />
