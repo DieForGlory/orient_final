@@ -5,19 +5,23 @@ Main application entry point
 import os
 from dotenv import load_dotenv
 
-# 2. СРАЗУ загружаем переменные, ДО импорта роутов
+# 1. Загружаем переменные окружения
 load_dotenv()
 
-# 3. Теперь остальные импорты (FastAPI и ваши модули)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# Ваши модули (теперь они увидят переменные окружения при инициализации)
+# Ваши модули
 from database import init_db
-from routes import admin, products, collections, orders, content, upload, bookings, products_export, settings, payme, promocodes
+from routes import (
+    admin, products, collections, orders, content, upload,
+    bookings, products_export, settings, payme, promocodes,
+    sitemap,       # Sitemap для роботов
+    seo_renderer   # Рендер HTML для людей и роботов
+)
 
-# Initialize database
+# Инициализация базы данных
 init_db()
 
 app = FastAPI(
@@ -26,17 +30,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS - Get allowed origins from environment variable
-# Default includes localhost and common Visual Studio Code ports
+# Настройка CORS
 cors_origins = os.getenv(
-    "CORS_ORIGINS", 
+    "CORS_ORIGINS",
     "http://localhost:5173,http://localhost:3000,http://localhost:5174,http://localhost:8080,http://127.0.0.1:5173,http://127.0.0.1:3000,http://127.0.0.1:5174,http://127.0.0.1:8080"
 )
 allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
 
 print(f"🌐 CORS enabled for origins: {allowed_origins}")
 
-# CORS middleware - MUST be added before routes
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -47,7 +49,7 @@ app.add_middleware(
     max_age=3600,
 )
 
-# Include routers BEFORE mounting static files
+# --- ПОДКЛЮЧЕНИЕ РОУТЕРОВ (API) ---
 app.include_router(admin.router)
 app.include_router(products_export.router)
 app.include_router(products.router)
@@ -59,34 +61,50 @@ app.include_router(bookings.router)
 app.include_router(settings.router)
 app.include_router(payme.router)
 app.include_router(promocodes.router)
-# Mount uploads directory AFTER routes
+app.include_router(sitemap.router) # Sitemap
+
+# --- ПОДКЛЮЧЕНИЕ СТАТИКИ ---
+
+# 1. Загруженные файлы (картинки товаров)
 upload_dir = os.getenv("UPLOAD_DIR", "uploads")
 if not os.path.exists(upload_dir):
     os.makedirs(upload_dir)
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
-@app.get("/")
-def read_root():
-    return {
-        "message": "Orient Watch API",
-        "version": "1.0.0",
-        "status": "running",
-        "cors_origins": allowed_origins
-    }
+# 2. Статика фронтенда (JS/CSS) - Исправленный путь
+# Вычисляем корень проекта (на 3 уровня выше текущего файла)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+DIST_ASSETS = os.path.join(BASE_DIR, "dist", "assets")
+
+# Подключаем assets ТОЛЬКО если папка существует (после билда фронтенда)
+if os.path.exists(DIST_ASSETS):
+    app.mount("/assets", StaticFiles(directory=DIST_ASSETS), name="assets")
+    print(f"✅ Assets mounted from: {DIST_ASSETS}")
+else:
+    print(f"⚠️ Warning: Assets directory not found at {DIST_ASSETS}. Did you run 'npm run build'?")
+
+# --- СИСТЕМНЫЕ ЭНДПОИНТЫ ---
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 
-@app.get("/api/test")
-def test_endpoint():
-    """Test endpoint to verify API is working"""
-    return {"message": "API is working!", "cors": "enabled"}
+@app.get("/api")  # Переименовали корень API, чтобы освободить "/" для сайта
+def read_api_root():
+    return {
+        "message": "Orient Watch API",
+        "version": "1.0.0",
+        "status": "running"
+    }
+
+# --- SEO RENDERER (САМЫЙ ПОСЛЕДНИЙ) ---
+# Перехватывает все остальные запросы (Главная, Каталог, Товар) и отдает HTML
+app.include_router(seo_renderer.router)
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     print(f"🚀 Starting server on http://0.0.0.0:{port}")
     print(f"📚 API docs: http://localhost:{port}/docs")
-    print(f"💳 Payme integration: enabled")
+    print(f"🗺️  Sitemap: http://localhost:{port}/sitemap.xml")
     uvicorn.run(app, host="0.0.0.0", port=port)

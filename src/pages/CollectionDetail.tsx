@@ -1,9 +1,11 @@
+// src/pages/CollectionDetail.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ProductCarousel } from '../components/ProductCarousel';
 import { ArrowRightIcon } from 'lucide-react';
 import { publicApi } from '../services/publicApi';
-import { SEO } from '../components/SEO'; // Добавлен импорт
+import { SEO } from '../components/SEO';
 
 interface Collection {
   id: string;
@@ -22,7 +24,7 @@ interface Product {
   isNew?: boolean;
 }
 
-// SEO Config
+// SEO Config по файлу seo_orientwatch.uz.xlsx
 const collectionSEO: Record<string, { title: string; description: string }> = {
   sports: {
     title: "Коллекция Sports Orient Watch – Спортивные часы для активного образа | Orient Watch Uzbekistan",
@@ -93,7 +95,7 @@ export function CollectionDetail() {
     );
   }
 
-  // Получаем SEO или фоллбэк
+  // Получаем SEO из конфига или генерируем дефолтный
   const seoData = (id && collectionSEO[id.toLowerCase()]) || {
     title: `${collection.name} | Orient Watch Uzbekistan`,
     description: collection.description
