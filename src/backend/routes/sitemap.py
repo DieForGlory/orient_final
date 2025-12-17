@@ -1,57 +1,70 @@
-# src/backend/routes/sitemap.py
-
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 from database import get_db, Product, Collection
 from datetime import datetime
 
 router = APIRouter()
-BASE_URL = "https://orientwatch.uz"
+
+# Укажите ваш реальный домен
+BASE_URL = "https://www.orientwatch.uz"
 
 
 @router.get("/sitemap.xml")
 async def get_sitemap(db: Session = Depends(get_db)):
-    urls = []
-
-    # 1. Статические страницы
-    static_pages = [
-        "/", "/catalog", "/boutique", "/history",
-        "/collections", "/warranty", "/delivery_policy", "/return_policy"
+    """Генерация динамического sitemap.xml"""
+    print("DEBUG: Generating sitemap...")
+    # 1. Статические страницы (добавьте или удалите при необходимости)
+    static_urls = [
+        "/",
+        "/catalog",
+        "/collections",
+        "/boutique",
+        "/history",
+        "/warranty",
+        "/delivery",
+        "/privacy",
+        "/return"
     ]
 
-    for path in static_pages:
-        urls.append(f"""
+    xml_content = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml_content.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+
+    # Добавляем статические страницы
+    for url in static_urls:
+        xml_content.append(f"""
     <url>
-        <loc>{BASE_URL}{path}</loc>
+        <loc>{BASE_URL}{url}</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.5</priority>
+    </url>""")
+
+    # 2. Коллекции
+    collections = db.query(Collection).filter(Collection.active == True).all()
+    for col in collections:
+        # Используем дату создания или текущую дату, если нет даты обновления
+        date_str = col.created_at.date().isoformat() if col.created_at else datetime.now().date().isoformat()
+        xml_content.append(f"""
+    <url>
+        <loc>{BASE_URL}/collections/{col.id}</loc>
+        <lastmod>{date_str}</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>""")
 
-    # 2. Товары
+    # 3. Товары
     products = db.query(Product).filter(Product.in_stock == True).all()
-    for p in products:
-        lastmod = p.updated_at.strftime("%Y-%m-%d") if p.updated_at else datetime.now().strftime("%Y-%m-%d")
-        urls.append(f"""
+    for prod in products:
+        # Дата последнего обновления товара
+        updated_date = prod.updated_at.date().isoformat() if prod.updated_at else datetime.now().date().isoformat()
+        xml_content.append(f"""
     <url>
-        <loc>{BASE_URL}/product/{p.id}</loc>
-        <lastmod>{lastmod}</lastmod>
+        <loc>{BASE_URL}/product/{prod.id}</loc>
+        <lastmod>{updated_date}</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>""")
 
-    # 3. Коллекции
-    collections = db.query(Collection).filter(Collection.active == True).all()
-    for c in collections:
-        urls.append(f"""
-    <url>
-        <loc>{BASE_URL}/collection/{c.id}</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.9</priority>
-    </url>""")
+    xml_content.append('</urlset>')
 
-    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{''.join(urls)}
-</urlset>"""
-
-    return Response(content=xml_content, media_type="application/xml")
+    # Возвращаем XML ответ
+    return Response(content="".join(xml_content), media_type="application/xml")

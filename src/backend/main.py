@@ -48,7 +48,7 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
-
+app.include_router(sitemap.router)
 # --- ПОДКЛЮЧЕНИЕ РОУТЕРОВ (API) ---
 app.include_router(admin.router)
 app.include_router(products_export.router)
@@ -61,7 +61,7 @@ app.include_router(bookings.router)
 app.include_router(settings.router)
 app.include_router(payme.router)
 app.include_router(promocodes.router)
-app.include_router(sitemap.router) # Sitemap
+# Sitemap
 
 # --- ПОДКЛЮЧЕНИЕ СТАТИКИ ---
 
