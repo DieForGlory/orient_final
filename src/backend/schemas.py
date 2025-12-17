@@ -4,7 +4,6 @@ Pydantic schemas for request/response validation
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
 from datetime import datetime
-
 # Auth schemas
 class LoginRequest(BaseModel):
     email: EmailStr

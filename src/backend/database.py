@@ -314,7 +314,12 @@ class Settings(Base):
     twitter_url = Column(String, nullable=True)
     filter_config = Column(Text, nullable=True)  # Добавлено
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Telegram Bot Config
+    telegram_bot_token = Column(String, nullable=True)
+    telegram_chat_ids = Column(String, nullable=True)  # Храним как строку через запятую: "12345,67890"
 
+    filter_config = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class PromoCode(Base):
     __tablename__ = "promocodes"

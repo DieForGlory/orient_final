@@ -43,12 +43,17 @@ class FilterConfig(BaseModel):
     diameterRanges: list[PriceRange] = []
     enabledFeatures: list[str] = []
 
+class TelegramSettings(BaseModel):
+    botToken: str
+    chatIds: str
+
 class SettingsData(BaseModel):
     site: SiteInfo
     shipping: ShippingInfo
     currency: CurrencyInfo
     social: SocialInfo
     filterConfig: FilterConfig
+    telegram: TelegramSettings
 
 # Admin endpoints
 @router.get("/api/admin/settings")
@@ -94,6 +99,10 @@ async def get_settings(
             "instagram": settings.instagram_url or "",
             "twitter": settings.twitter_url or ""
         },
+        "telegram": {
+            "botToken": settings.telegram_bot_token or "",
+            "chatIds": settings.telegram_chat_ids or ""
+        },
         "filterConfig": filter_config
     }
 
@@ -133,6 +142,8 @@ async def update_settings(
     # Update filter config
     settings.filter_config = json.dumps(data.filterConfig.dict(), ensure_ascii=False)
 
+    settings.telegram_bot_token = data.telegram.botToken
+    settings.telegram_chat_ids = data.telegram.chatIds
     db.commit()
 
     return {"message": "Settings updated successfully"}

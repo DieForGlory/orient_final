@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import json
 from datetime import datetime
-
+from telegram_bot import notify_new_order, notify_order_status
+from fastapi import BackgroundTasks # Добавь BackgroundTasks в импорты fastapi
 from database import get_db, Order
 from schemas import OrderCreate, OrderStatusUpdate
 from auth import require_admin
@@ -19,7 +20,7 @@ def generate_order_number():
     return f"ORD-{timestamp}"
 
 @router.post("/api/orders")
-async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
+async def create_order(order: OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Create new order (public endpoint)"""
     # Generate order number
     order_number = generate_order_number()
@@ -42,7 +43,9 @@ async def create_order(order: OrderCreate, db: Session = Depends(get_db)):
     db.add(db_order)
     db.commit()
     db.refresh(db_order)
-    
+
+    background_tasks.add_task(notify_new_order, db, db_order)
+
     return {
         "message": "Order created successfully",
         "orderNumber": order_number,
@@ -129,25 +132,30 @@ async def get_order(
         "updatedAt": order.updated_at.isoformat() if order.updated_at else None
     }
 
+
 @router.put("/api/admin/orders/{order_id}/status")
 async def update_order_status(
-    order_id: str,
-    status_update: OrderStatusUpdate,
-    db: Session = Depends(get_db),
-    current_user = Depends(require_admin)
+        order_id: str,
+        status_update: OrderStatusUpdate,
+        background_tasks: BackgroundTasks,  # <-- Инъекция
+        db: Session = Depends(get_db),
+        current_user=Depends(require_admin)
 ):
-    """Update order status"""
     order = db.query(Order).filter(Order.order_number == order_id).first()
-    
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    
+
+    old_status = order.status
     order.status = status_update.status
     if status_update.note:
         order.notes = status_update.note
-    
+
     db.commit()
-    
+
+    # Отправка уведомления только если статус реально изменился
+    if old_status != status_update.status:
+        background_tasks.add_task(notify_order_status, db, order_id, old_status, status_update.status)
+
     return {
         "message": "Order status updated",
         "id": order_id,
