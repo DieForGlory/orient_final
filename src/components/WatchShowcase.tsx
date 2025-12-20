@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { HeroCarousel } from './HeroCarousel';
-import { publicApi } from '../services/publicApi';
-interface FeaturedWatch {
+
+// Экспортируем интерфейс
+export interface FeaturedWatch {
   id: string;
   name: string;
   collection: string;
@@ -9,31 +10,17 @@ interface FeaturedWatch {
   image: string;
   isNew?: boolean;
 }
-export function WatchShowcase() {
-  const [loading, setLoading] = useState(true);
-  const [watches, setWatches] = useState<FeaturedWatch[]>([]);
-  useEffect(() => {
-    fetchFeaturedWatches();
-  }, []);
-  const fetchFeaturedWatches = async () => {
-    try {
-      const data = await publicApi.getFeaturedWatches();
-      setWatches(data);
-    } catch (error) {
-      console.error('Error fetching featured watches:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  if (loading) {
-    return <section className="py-16 sm:py-24 lg:py-32 bg-white">
-        <div className="flex items-center justify-center">
-          <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </section>;
-  }
-  if (watches.length === 0) return null;
-  return <section className="py-16 sm:py-24 lg:py-32 bg-white relative overflow-hidden">
+
+interface WatchShowcaseProps {
+  products: FeaturedWatch[];
+}
+
+export function WatchShowcase({ products }: WatchShowcaseProps) {
+  // Если товаров нет, секция просто не отрисуется
+  if (!products || products.length === 0) return null;
+
+  return (
+    <section className="py-16 sm:py-24 lg:py-32 bg-white relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent"></div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-16">
@@ -49,9 +36,10 @@ export function WatchShowcase() {
           </h2>
         </div>
 
-        <HeroCarousel products={watches} />
+        <HeroCarousel products={products} />
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent"></div>
-    </section>;
+    </section>
+  );
 }

@@ -19,7 +19,7 @@ interface SocialLinks {
   twitter: string;
 }
 
-// Добавляем интерфейс доставки
+// Интерфейс доставки
 interface ShippingInfo {
   freeShippingThreshold: number;
   standardCost: number;
@@ -30,63 +30,79 @@ interface SettingsContextType {
   currency: Currency;
   site: SiteInfo;
   social: SocialLinks;
-  shipping: ShippingInfo; // Добавляем в тип контекста
+  shipping: ShippingInfo;
   formatPrice: (price: number) => string;
   loading: boolean;
+}
+
+// Вспомогательная функция для бесконечного повтора запроса
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка загрузки настроек, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
+  // Дефолтные состояния (пока грузится)
   const [currency, setCurrency] = useState<Currency>({
     code: 'UZS',
-    symbol: '₽'
+    symbol: 'UZS'
   });
   const [site, setSite] = useState<SiteInfo>({
     name: 'Orient Watch',
-    email: 'info@orient.uz',
-    phone: '+998 71 123 45 67',
-    address: 'Ташкент, Узбекистан'
+    email: '',
+    phone: '',
+    address: ''
   });
   const [social, setSocial] = useState<SocialLinks>({
-    facebook: 'https://facebook.com/orient',
-    instagram: 'https://instagram.com/orient',
-    twitter: 'https://twitter.com/orient'
+    facebook: '',
+    instagram: '',
+    twitter: ''
   });
-  // Добавляем состояние доставки
   const [shipping, setShipping] = useState<ShippingInfo>({
-    freeShippingThreshold: 100000,
-    standardCost: 50000,
-    expressCost: 100000
+    freeShippingThreshold: 0,
+    standardCost: 0,
+    expressCost: 0
   });
 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    let isMounted = true;
 
-  const fetchSettings = async () => {
-    try {
-      // Загружаем все настройки параллельно
+    const fetchSettings = async () => {
+      // Загружаем все настройки параллельно с бесконечным ретраем.
+      // Это гарантирует, что валюта в каталоге и контакты в бутике
+      // будут загружены с сервера, даже если он тупит.
       const [currencyData, siteData, socialData, shippingData] = await Promise.all([
-        publicApi.getCurrency().catch(() => ({ code: 'UZS', symbol: '₽' })),
-        publicApi.getSiteInfo().catch(() => site),
-        publicApi.getSocialLinks().catch(() => social),
-        publicApi.getShippingInfo().catch(() => shipping)
+        fetchWithInfiniteRetry(() => publicApi.getCurrency()),
+        fetchWithInfiniteRetry(() => publicApi.getSiteInfo()),
+        fetchWithInfiniteRetry(() => publicApi.getSocialLinks()),
+        fetchWithInfiniteRetry(() => publicApi.getShippingInfo())
       ]);
 
-      setCurrency(currencyData);
-      setSite(siteData);
-      setSocial(socialData);
-      setShipping(shippingData);
+      if (isMounted) {
+        setCurrency(currencyData);
+        setSite(siteData);
+        setSocial(socialData);
+        setShipping(shippingData);
+        setLoading(false);
+      }
+    };
 
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchSettings();
+
+    return () => { isMounted = false; };
+  }, []);
 
   const formatPrice = (price: number): string => {
     return `${price.toLocaleString('ru-RU')} ${currency.symbol}`;
@@ -97,7 +113,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       currency,
       site,
       social,
-      shipping, // Передаем в провайдер
+      shipping,
       formatPrice,
       loading
     }}>

@@ -19,6 +19,20 @@ interface FilterOptions {
   waterResistances: { label: string; value: string; count: number }[];
 }
 
+// Вспомогательная функция для бесконечного повтора запроса
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка загрузки фильтров, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
+
 export function FilterSidebar() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -29,48 +43,47 @@ export function FilterSidebar() {
   const [priceRanges, setPriceRanges] = useState<FilterRange[]>([]);
   const [diameterRanges, setDiameterRanges] = useState<FilterRange[]>([]);
 
-  // ПУНКТ 3: Все фильтры свернуты по умолчанию
+  // Все фильтры свернуты по умолчанию
   const [openSections, setOpenSections] = useState<string[]>([]);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    let isMounted = true;
 
-  const loadData = async () => {
-    try {
+    const loadData = async () => {
+      // Запускаем параллельную загрузку всех данных для фильтров с бесконечным ретраем
       const [colData, filterData, settingsData] = await Promise.all([
-        publicApi.getCollections(),
-        publicApi.getFilters(),
-        publicApi.getFilterSettings()
+        fetchWithInfiniteRetry(() => publicApi.getCollections()),
+        fetchWithInfiniteRetry(() => publicApi.getFilters()),
+        fetchWithInfiniteRetry(() => publicApi.getFilterSettings())
       ]);
 
-      setCollections(colData);
-      setFilters(filterData);
+      if (isMounted) {
+        setCollections(colData);
+        setFilters(filterData);
 
-      setPriceRanges(settingsData.priceRanges || []);
-      setDiameterRanges(settingsData.diameterRanges || []);
-      setEnabledFeatures(settingsData.enabledFeatures || []);
-    } catch (error) {
-      console.error('Error loading filters:', error);
-    }
-  };
+        setPriceRanges(settingsData.priceRanges || []);
+        setDiameterRanges(settingsData.diameterRanges || []);
+        setEnabledFeatures(settingsData.enabledFeatures || []);
+      }
+    };
+
+    loadData();
+
+    return () => { isMounted = false; };
+  }, []);
 
   const toggleSection = (title: string) => {
     setOpenSections(prev => prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]);
   };
 
-  // ПУНКТ 2: Логика мультивыбора (ИЛИ внутри фильтра)
   const handleMultiFilterChange = (key: string, value: string, checked: boolean) => {
-    // Получаем текущие значения массива
     const currentValues = searchParams.getAll(key);
 
     if (checked) {
-      // Добавляем, если еще нет
       if (!currentValues.includes(value)) {
         searchParams.append(key, value);
       }
     } else {
-      // Удаляем конкретное значение
       searchParams.delete(key);
       currentValues
         .filter(v => v !== value)
@@ -81,13 +94,10 @@ export function FilterSidebar() {
     setSearchParams(searchParams);
   };
 
-  // Для диапазонов (Цена/Диаметр) оставляем логику одиночного выбора,
-  // так как бэкенд обычно принимает только один min/max интервал.
   const handleRangeChange = (paramPrefix: string, min: number, max: number, checked: boolean) => {
     const minKey = `min${paramPrefix}`;
     const maxKey = `max${paramPrefix}`;
 
-    // Сбрасываем старый диапазон перед установкой нового (радио-поведение для чекбоксов диапазонов)
     searchParams.delete(minKey);
     searchParams.delete(maxKey);
 
@@ -104,7 +114,17 @@ export function FilterSidebar() {
     setSearchParams({});
   };
 
-  if (!filters) return <div>Загрузка фильтров...</div>;
+  // Пока данные не загрузятся (filters === null), показываем спиннер
+  if (!filters) {
+    return (
+      <div className="w-full lg:w-80 bg-white p-8 flex flex-col items-center justify-center space-y-4 border-r border-black/10">
+        <div className="w-8 h-8 border-2 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-xs font-medium text-black/50 uppercase tracking-wider animate-pulse">
+          Загрузка фильтров...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <aside className="w-full lg:w-80 bg-white">

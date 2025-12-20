@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon } from 'lucide-react';
 import { publicApi } from '../services/publicApi';
-import { SEO } from '../components/SEO'; // Добавлен импорт
+import { SEO } from '../components/SEO';
 
 interface Collection {
   id: string;
@@ -13,36 +13,57 @@ interface Collection {
   number: string;
 }
 
+// Вспомогательная функция для бесконечного повтора запроса при ошибке
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка загрузки коллекций, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
+
 export function Collections() {
   const [loading, setLoading] = useState(true);
   const [collections, setCollections] = useState<Collection[]>([]);
 
   useEffect(() => {
-    fetchCollections();
+    let isMounted = true;
+
+    const loadData = async () => {
+      // Запрос будет повторяться бесконечно, пока не пройдет успешно
+      const data = await fetchWithInfiniteRetry(() => publicApi.getCollections());
+
+      if (isMounted) {
+        setCollections(data);
+        // Выключаем лоадер ТОЛЬКО когда данные получены
+        setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => { isMounted = false; };
   }, []);
 
-  const fetchCollections = async () => {
-    setLoading(true);
-    try {
-      const data = await publicApi.getCollections();
-      setCollections(data);
-    } catch (error) {
-      console.error('Error fetching collections:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
+    // Этот экран будет висеть, пока сервер не ответит
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="text-xs tracking-[0.2em] font-medium text-black uppercase animate-pulse">
+          Загрузка коллекций...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-white">
+    <div className="w-full bg-white animate-fade-in">
       <SEO
         title="Коллекции Orient Watch – Sports, Classic, Bambino, Revival, Contemporary | Orient Watch Uzbekistan"
         description="Обзор коллекций часов Orient. Купить с доставкой по Узбекистану. Гарантия 2 года. Официальный дилер Orient Watch в Узбекистане."
@@ -66,12 +87,19 @@ export function Collections() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-8 sm:py-12 lg:py-20">
-        {collections.length === 0 ? <div className="text-center py-16">
+        {collections.length === 0 ? (
+          <div className="text-center py-16">
             <p className="text-xl text-black/60">Коллекции скоро появятся</p>
-          </div> : <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
-            {collections.map((collection, index) => <Link key={collection.id} to={`/collection/${collection.id}`} className="group block animate-fade-in" style={{
-          animationDelay: `${index * 100}ms`
-        }}>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
+            {collections.map((collection, index) => (
+              <Link
+                key={collection.id}
+                to={`/collection/${collection.id}`}
+                className="group block animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
                 <div className="relative aspect-[4/3] overflow-hidden bg-black mb-4 sm:mb-6">
                   <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
                     <div className="flex items-center space-x-2 sm:space-x-3">
@@ -81,7 +109,11 @@ export function Collections() {
                       </span>
                     </div>
                   </div>
-                  <img src={collection.image} alt={collection.name} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700" />
+                  <img
+                    src={collection.image}
+                    alt={collection.name}
+                    className="w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
                   <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
                     <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2 sm:mb-3 group-hover:tracking-wider transition-all duration-500 break-words">
@@ -104,8 +136,10 @@ export function Collections() {
                     <ArrowRightIcon className="w-3 h-3 sm:w-4 sm:h-4 transform group-hover:translate-x-2 transition-transform duration-500" strokeWidth={2.5} />
                   </div>
                 </div>
-              </Link>)}
-          </div>}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="bg-gray-50 py-12 sm:py-16 lg:py-20">

@@ -23,7 +23,7 @@ def reset_admin_password():
             # Create new admin
             admin = User(
                 email="admin@orient.uz",
-                password_hash=get_password_hash("admin123"),
+                password_hash=get_password_hash("jfjjsjsyajajbrhfyuwtwgbsv8383615gxjsjwuwj"),
                 name="Admin User",
                 role="admin"
             )
@@ -32,7 +32,7 @@ def reset_admin_password():
             print("✅ Admin user created!")
         else:
             # Reset password
-            admin.password_hash = get_password_hash("admin123")
+            admin.password_hash = get_password_hash("jfjjsjsyajajbrhfyuwtwgbsv8383615gxjsjwuwj")
             db.commit()
             print("✅ Admin password reset!")
         
@@ -40,7 +40,7 @@ def reset_admin_password():
         print("ADMIN CREDENTIALS:")
         print("="*50)
         print("Email:    admin@orient.uz")
-        print("Password: admin123")
+        print("Password: jfjjsjsyajajbrhfyuwtwgbsv8383615gxjsjwuwj")
         print("="*50)
         
         # Test password

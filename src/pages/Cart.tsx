@@ -30,7 +30,18 @@ interface AppliedPromo {
   applicable_products: string[];
   applicable_collections: string[];
 }
-
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Сервер занят, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
 export function Cart() {
   const navigate = useNavigate();
   const { formatPrice } = useSettings();
@@ -104,14 +115,19 @@ export function Cart() {
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) return;
     setPromoLoading(true);
-    setPromoError('');
+    setPromoError(''); // Сбрасываем старые ошибки
 
     try {
-      const promoData = await publicApi.validatePromoCode(promoInput);
+      // Используем бесконечный ретрай для проверки промокода
+      // Если сервер упал, пользователь будет видеть лоадер "..." пока сервер не ответит
+      const promoData = await fetchWithInfiniteRetry(() =>
+        publicApi.validatePromoCode(promoInput)
+      );
+
       setAppliedPromo(promoData);
-      setPromoInput(''); // Очистить поле или оставить для наглядности
+      setPromoInput('');
     } catch (error: any) {
-      setPromoError(error.message || 'Неверный промокод');
+      setPromoError(error.message || 'Ошибка проверки');
       setAppliedPromo(null);
     } finally {
       setPromoLoading(false);
@@ -171,7 +187,7 @@ export function Cart() {
         items: cartItems.map(item => ({
           productId: item.id,
           quantity: item.quantity,
-          price: item.price - getItemDiscount(item) // Сохраняем цену уже со скидкой
+          price: item.price - getItemDiscount(item)
         })),
         customer: {
           fullName: formData.fullName,
@@ -192,7 +208,13 @@ export function Cart() {
         notes: appliedPromo ? `Промокод: ${appliedPromo.code} (-${appliedPromo.discount_percent}%)` : ''
       };
 
-      const response = await publicApi.createOrder(orderData);
+      // === ЗДЕСЬ ГЛАВНОЕ ИЗМЕНЕНИЕ ===
+      // Оборачиваем создание заказа в бесконечный ретрай.
+      // Если сервер вернет 500 или упадет сеть, мы будем пробовать снова и снова.
+      // Кнопка будет неактивна и писать "Оформление..."
+      const response = await fetchWithInfiniteRetry(() =>
+        publicApi.createOrder(orderData)
+      );
 
       setOrderNumber(response.orderNumber);
       setFinalTotal(currentOrderTotal);
@@ -205,8 +227,9 @@ export function Cart() {
         navigate('/');
       }
     } catch (error) {
+      // Сюда мы практически никогда не попадем, так как fetchWithInfiniteRetry крутится вечно
       console.error('Error creating order:', error);
-      alert('❌ Ошибка при создании заказа.');
+      alert('❌ Критическая ошибка. Попробуйте обновить страницу.');
     } finally {
       setSubmitting(false);
     }

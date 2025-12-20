@@ -16,6 +16,20 @@ interface Product {
   isNew?: boolean;
 }
 
+// Вспомогательная функция для бесконечного повтора запроса
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка загрузки каталога, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
+
 export function Catalog() {
   const { currency } = useSettings();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,6 +40,8 @@ export function Catalog() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('popular');
 
+  // Формируем фильтры (вынесли внутрь useEffect или оставим здесь для рендера,
+  // но для запроса будем собирать актуальные)
   const filters = {
     collection: searchParams.getAll('collection'),
     search: searchParams.get('search') || '',
@@ -45,21 +61,30 @@ export function Catalog() {
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, [searchParams, sortBy]);
+    let isMounted = true;
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const response = await publicApi.getProducts({ ...filters, sort: sortBy, limit: pagination.limit });
-      setProducts(response.data);
-      setPagination(response.pagination);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const loadProducts = async () => {
+      setLoading(true);
+
+      // Используем бесконечный ретрай.
+      // Если сервер упал, мы будем ждать вечно (показывая лоадер), пока он не поднимется.
+      const response = await fetchWithInfiniteRetry(() =>
+        publicApi.getProducts({ ...filters, sort: sortBy, limit: pagination.limit })
+      );
+
+      if (isMounted) {
+        setProducts(response.data);
+        setPagination(response.pagination);
+        // Выключаем лоадер ТОЛЬКО после успеха
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+
+    return () => { isMounted = false; };
+    // Зависимости: при изменении URL (фильтров) или сортировки перезапускаем загрузку
+  }, [searchParams, sortBy]);
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > pagination.totalPages) return;
@@ -166,8 +191,11 @@ export function Catalog() {
               </div>}
 
             {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin mb-4"></div>
+                <div className="text-xs tracking-[0.2em] font-medium text-black uppercase animate-pulse">
+                   Загрузка товаров...
+                </div>
               </div>
             ) : products.length === 0 ? (
               <div className="text-center py-20">

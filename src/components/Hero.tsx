@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react'; // Убрали useEffect
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon } from 'lucide-react';
-import { publicApi } from '../services/publicApi';
 
-interface HeroContent {
+// Экспортируем интерфейс, чтобы использовать его в Home.tsx
+export interface HeroContent {
   title: string;
   subtitle: string;
   image: string;
@@ -16,42 +16,15 @@ interface HeroContent {
   buttonHoverBgColor?: string;
 }
 
-export function Hero() {
-  const [loading, setLoading] = useState(true);
-  const [content, setContent] = useState<HeroContent | null>(null);
+// Принимаем данные через props
+interface HeroProps {
+  content: HeroContent | null;
+}
+
+export function Hero({ content }: HeroProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  useEffect(() => {
-    // Запускаем загрузку с возможностью повторных попыток
-    fetchHeroContentWithRetry();
-  }, []);
-
-  const fetchHeroContentWithRetry = async (retries = 3, delay = 1000) => {
-    try {
-      const data = await publicApi.getHeroContent();
-      setContent(data);
-      setLoading(false);
-    } catch (error) {
-      if (retries > 0) {
-        console.warn(`Hero fetch failed, retrying in ${delay}ms... (${retries} left)`);
-        setTimeout(() => fetchHeroContentWithRetry(retries - 1, delay), delay);
-      } else {
-        console.error('Error fetching hero content after retries:', error);
-        // Fallback включается только когда все попытки исчерпаны
-        setContent({
-          title: 'НАЙДИТЕ\nИДЕАЛЬНЫЕ\nЧАСЫ.',
-          subtitle: 'Японское мастерство и точность в каждой детали',
-          image: 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=1600&q=80',
-          mobileImage: '',
-          ctaText: 'Смотреть коллекцию',
-          ctaLink: '/catalog',
-        });
-        setLoading(false);
-      }
-    }
-  };
-
-  if (loading) return null; // Или можно вернуть скелетон/спиннер
+  // Если контента пока нет (хотя Home это предотвратит), ничего не рисуем
   if (!content) return null;
 
   const buttonStyle = {

@@ -2,7 +2,7 @@ import httpx
 import json
 import asyncio
 from sqlalchemy.orm import Session
-from database import Settings
+from database import Settings, Product  #
 
 
 async def send_message(token: str, chat_id: str, text: str):
@@ -41,6 +41,40 @@ async def notify_new_order(db: Session, order):
         name = customer.get("fullName", "Не указано")
         phone = customer.get("phone", "Не указано")
 
+        # --- ЛОГИКА ПОЛУЧЕНИЯ СПИСКА ТОВАРОВ ---
+        items_text = ""
+        try:
+            items_data = json.loads(order.items) if order.items else []
+            if items_data:
+                # 1. Собираем ID всех товаров
+                product_ids = [item.get("productId") for item in items_data]
+
+                # 2. Запрашиваем товары из БД (нам нужны Name и SKU)
+                products = db.query(Product).filter(Product.id.in_(product_ids)).all()
+                product_map = {str(p.id): p for p in products}
+
+                lines = []
+                for item in items_data:
+                    p_id = str(item.get("productId"))
+                    qty = item.get("quantity", 1)
+
+                    product = product_map.get(p_id)
+                    if product:
+                        p_name = product.name
+                        # Добавляем SKU, если есть
+                        p_sku = f" (SKU: {product.sku})" if product.sku else ""
+                        lines.append(f"⌚ <b>{p_name}</b>{p_sku} x{qty}")
+                    else:
+                        lines.append(f"⌚ <b>Товар #{p_id}</b> x{qty}")
+
+                items_text = "\n".join(lines)
+        except Exception as e:
+            print(f"Error parsing order items for telegram: {e}")
+            items_text = "⚠️ Ошибка загрузки списка товаров"
+
+        # Ссылка на админку (предполагаем, что домен orientwatch.uz)
+        admin_link = "https://orientwatch.uz/admin/orders"
+
         msg = (
             f"🔔 <b>Новый заказ!</b>\n\n"
             f"🆔 <b>Номер:</b> {order.order_number}\n"
@@ -48,8 +82,15 @@ async def notify_new_order(db: Session, order):
             f"📞 <b>Телефон:</b> {phone}\n"
             f"💰 <b>Сумма:</b> {order.total:,.0f} UZS\n"
             f"🚚 <b>Доставка:</b> {order.delivery_method}\n"
-            f"💳 <b>Оплата:</b> {order.payment_method}"
+            f"💳 <b>Оплата:</b> {order.payment_method}\n\n"
+            f"🛍 <b>Состав заказа:</b>\n"
+            f"{items_text}\n\n"
+            f"🔗 <a href='{admin_link}'>Открыть заказ в админке</a>"
         )
+
+        if order.notes:
+            msg += f"\n💬 <b>Комментарий:</b> {order.notes}"
+
         await broadcast_message(db, msg)
     except Exception as e:
         print(f"Failed to prepare order notification: {e}")
@@ -68,7 +109,7 @@ async def notify_order_status(db: Session, order_number: str, old_status: str, n
         print(f"Failed to prepare status notification: {e}")
 
 
-# --- Уведомления о БРОНИРОВАНИЯХ (НОВОЕ) ---
+# --- Уведомления о БРОНИРОВАНИЯХ ---
 async def notify_new_booking(db: Session, booking):
     try:
         msg = (

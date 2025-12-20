@@ -4,6 +4,20 @@ import { publicApi } from '../services/publicApi';
 import { useSettings } from '../contexts/SettingsContext';
 import { SEO } from '../components/SEO';
 
+// Вспомогательная функция для бесконечного повтора запроса
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка запроса (Boutique), повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
+
 export function Boutique() {
   const { site } = useSettings();
   const [content, setContent] = useState<any>(null);
@@ -23,17 +37,22 @@ export function Boutique() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadContent = async () => {
-      try {
-        const data = await publicApi.getBoutiqueContent();
+      // Бесконечный ретрай загрузки контента страницы
+      const data = await fetchWithInfiniteRetry(() => publicApi.getBoutiqueContent());
+
+      if (isMounted) {
         setContent(data);
-      } catch (error) {
-        console.error('Error loading boutique content:', error);
-      } finally {
+        // Убираем лоадер только после успешной загрузки
         setLoading(false);
       }
     };
+
     loadContent();
+
+    return () => { isMounted = false; };
   }, []);
 
   const validateForm = () => {
@@ -54,26 +73,27 @@ export function Boutique() {
       return;
     }
     setSubmitting(true);
-    try {
-      const response = await publicApi.createBooking({
-        ...formData,
-        boutique: site.name
-      });
-      alert(`✅ Спасибо! Ваша запись #${response.booking_number} принята.\n\nМы свяжемся с вами для подтверждения.`);
-      setFormData({
-        name: '',
-        phone: '',
-        email: '',
-        date: '',
-        time: '',
-        message: ''
-      });
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      alert('❌ Ошибка при отправке заявки. Пожалуйста, попробуйте снова или позвоните нам.');
-    } finally {
-      setSubmitting(false);
-    }
+
+    // Бесконечный ретрай отправки формы.
+    // Если сервер лежит, пользователь будет видеть "Отправка..." до победного.
+    const response = await fetchWithInfiniteRetry(() => publicApi.createBooking({
+      ...formData,
+      boutique: site.name
+    }));
+
+    // Код ниже выполнится только после успешной отправки
+    alert(`✅ Спасибо! Ваша запись #${response.booking_number} принята.\n\nМы свяжемся с вами для подтверждения.`);
+
+    setFormData({
+      name: '',
+      phone: '',
+      email: '',
+      date: '',
+      time: '',
+      message: '',
+      website_check: ''
+    });
+    setSubmitting(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -91,17 +111,20 @@ export function Boutique() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="text-xs tracking-[0.2em] font-medium text-black uppercase animate-pulse">
+          Загрузка бутика...
+        </div>
       </div>
     );
   }
 
-  // Fallback, если контент не загрузился, но загрузка завершена
+  // Fallback, если контент не загрузился (теоретически невозможен с infinite retry, если только API не вернет null явно)
   if (!content) return null;
 
   return (
-    <div className="w-full bg-white">
+    <div className="w-full bg-white animate-fade-in">
       <SEO
         title="Бутик Официального дилера Orient Watch в Узбекистане | Orient Watch Uzbekistan"
         description="Официальный Бутик Orient Watch в Ташкенте: г.Ташкент, ул.Аккурган, 24, +998 88 281-28-28, Пн-Сб: 11:00 - 19:00 Вс: 12:00 - 18:00. Запишитесь на примерку оригинальных японских часов с гарантией. Официальный дилер Orient Watch в Узбекистане."
@@ -170,7 +193,6 @@ export function Boutique() {
                   {site.name}
                 </h2>
 
-                {/* Дополнительный текст из админки (если есть) */}
                 {content.infoBlock?.text && (
                   <p className="text-black/70 mb-6 leading-relaxed">
                     {content.infoBlock.text}
@@ -330,6 +352,7 @@ export function Boutique() {
                 <textarea value={formData.message} onChange={e => handleInputChange('message', e.target.value)} rows={4} className="w-full max-w-full px-4 sm:px-6 py-3 sm:py-4 border-2 border-black/20 focus:border-[#C8102E] focus:outline-none transition-colors resize-none" placeholder="Расскажите, какие часы вас интересуют..." disabled={submitting} />
               </div>
             </div>
+
             <div className="absolute opacity-0 -z-10 h-0 w-0 overflow-hidden">
               <input
                 type="text"
@@ -341,6 +364,7 @@ export function Boutique() {
                 onChange={e => handleInputChange('website_check', e.target.value)}
               />
             </div>
+
             <div className="flex flex-col items-center space-y-4 pt-4">
               <button type="submit" disabled={submitting} className="bg-[#C8102E] hover:bg-[#A00D24] text-white px-12 sm:px-16 py-4 sm:py-5 text-xs sm:text-sm tracking-[0.2em] font-semibold transition-all duration-500 uppercase inline-flex items-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitting ? <>

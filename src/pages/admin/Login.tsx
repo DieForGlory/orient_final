@@ -101,9 +101,6 @@ export function AdminLogin() {
 
           {/* Demo credentials */}
           <div className="mt-8 pt-8 border-t border-black/10">
-            <p className="text-xs text-black/50 text-center">
-              Демо: admin@orient.uz / admin123
-            </p>
           </div>
         </div>
       </div>

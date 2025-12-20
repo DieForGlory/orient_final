@@ -35,12 +35,26 @@ interface Product {
   fbDescription?: string;
 }
 
+// Вспомогательная функция для бесконечного повтора запроса
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка загрузки товара, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
+
 export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { addItem } = useCart();
   const { formatPrice } = useSettings();
 
-  // 1. ХУКИ (useState, useRef, useMemo) - должны быть в самом начале
+  // 1. ХУКИ (useState, useRef, useMemo)
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -58,7 +72,6 @@ export function ProductDetail() {
   const imageRef = useRef<HTMLDivElement>(null);
   const addToCartButtonRef = useRef<HTMLButtonElement>(null);
 
-  // useMemo поднимаем сюда (ДО return). Он зависит от product, но внутри есть проверка.
   const allImages = useMemo(() => {
     if (!product) return [];
     const imgs = [product.image];
@@ -74,9 +87,23 @@ export function ProductDetail() {
 
   // 2. ЭФФЕКТЫ (useEffect)
   useEffect(() => {
+    let isMounted = true;
+
     if (id) {
-      fetchProduct(id);
+      const loadProduct = async () => {
+        setLoading(true);
+        // Бесконечный ретрай. Если сервер занят, будем ждать вечно.
+        const data = await fetchWithInfiniteRetry(() => publicApi.getProduct(id));
+
+        if (isMounted) {
+          setProduct(data);
+          setLoading(false);
+        }
+      };
+      loadProduct();
     }
+
+    return () => { isMounted = false; };
   }, [id]);
 
   useEffect(() => {
@@ -84,18 +111,6 @@ export function ProductDetail() {
   }, [id]);
 
   // 3. ФУНКЦИИ-ОБРАБОТЧИКИ
-  const fetchProduct = async (productId: string) => {
-    setLoading(true);
-    try {
-      const data = await publicApi.getProduct(productId);
-      setProduct(data);
-    } catch (error) {
-      console.error('Error fetching product:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const nextImage = () => {
     if (allImages.length > 1) {
       setSelectedImage((prev) => (prev + 1) % allImages.length);
@@ -191,16 +206,19 @@ export function ProductDetail() {
   };
 
   // 4. УСЛОВНЫЙ РЕНДЕРИНГ (Загрузка / Ошибка)
-  // Внимание: все хуки должны быть ВЫШЕ этих строк
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="text-xs tracking-[0.2em] font-medium text-black uppercase animate-pulse">
+           Загрузка товара...
+        </div>
       </div>
     );
   }
 
   if (!product) {
+    // Этот экран покажется только если API вернет "успешный" ответ null (например, если товара вообще нет в БД)
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -215,11 +233,8 @@ export function ProductDetail() {
 
   // 5. ПЕРЕМЕННЫЕ ДЛЯ РЕНДЕРА (Когда product точно есть)
   const currentImage = allImages[selectedImage] || product.image;
-
-  // SEO Title для ALT (перенесено сюда, чтобы не было ReferenceError)
   const baseAltText = product.seoTitle || product.name || 'Orient Watch';
 
-  // Объединяем характеристики
   const mainSpecs = [
     { label: 'Бренд', value: product.brand },
     { label: 'Пол', value: product.gender },
@@ -238,7 +253,7 @@ export function ProductDetail() {
   const pageDescription = product.seoDescription || `Купить часы ${product.name} из коллекции ${product.collection}. Официальная гарантия, бесплатная доставка по Ташкенту. Характеристики: ${product.movement || 'японский механизм'}, ${product.caseMaterial || 'стальной корпус'}.`;
 
   return (
-    <div className="w-full bg-white">
+    <div className="w-full bg-white animate-fade-in">
       <SEO
         title={pageTitle}
         description={pageDescription}

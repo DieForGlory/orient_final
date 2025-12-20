@@ -48,6 +48,20 @@ const collectionSEO: Record<string, { title: string; description: string }> = {
   }
 };
 
+// Функция для бесконечного повтора запроса при ошибке
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка загрузки коллекции, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
+
 export function CollectionDetail() {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
@@ -55,36 +69,45 @@ export function CollectionDetail() {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    if (id) {
-      fetchCollectionData(id);
-    }
-  }, [id]);
+    let isMounted = true;
 
-  const fetchCollectionData = async (collectionId: string) => {
-    setLoading(true);
-    try {
-      const [collectionData, productsData] = await Promise.all([
-        publicApi.getCollection(collectionId),
-        publicApi.getCollectionProducts(collectionId, { limit: 50 })
-      ]);
-      setCollection(collectionData);
-      setProducts(productsData.data);
-    } catch (error) {
-      console.error('Error fetching collection:', error);
-    } finally {
-      setLoading(false);
+    if (id) {
+      const loadData = async () => {
+        // Запускаем параллельную загрузку данных коллекции и товаров
+        // Promise.all завершится только когда ОБА запроса пройдут успешно (благодаря fetchWithInfiniteRetry)
+        const [collectionData, productsData] = await Promise.all([
+          fetchWithInfiniteRetry(() => publicApi.getCollection(id)),
+          fetchWithInfiniteRetry(() => publicApi.getCollectionProducts(id, { limit: 50 }))
+        ]);
+
+        if (isMounted) {
+          setCollection(collectionData);
+          setProducts(productsData.data);
+          // Выключаем лоадер только когда все данные готовы
+          setLoading(false);
+        }
+      };
+
+      loadData();
     }
-  };
+
+    return () => { isMounted = false; };
+  }, [id]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-4 border-[#C8102E] border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="text-xs tracking-[0.2em] font-medium text-black uppercase animate-pulse">
+           Загрузка коллекции...
+        </div>
       </div>
     );
   }
 
   if (!collection) {
+    // Этот экран покажется только если API вернет null (например, если такой коллекции не существует в БД),
+    // но не при ошибках сети (при них будет вечная загрузка).
     return (
       <div className="w-full bg-white min-h-screen flex items-center justify-center">
         <div className="text-center space-y-4">

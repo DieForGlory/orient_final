@@ -24,6 +24,20 @@ interface PromoBanner {
   highlightColor: string;
 }
 
+// Вспомогательная функция для бесконечного повтора запроса
+async function fetchWithInfiniteRetry<T>(
+  fn: () => Promise<T>,
+  delay = 2000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`Ошибка загрузки Header, повтор через ${delay}мс...`, error);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return fetchWithInfiniteRetry(fn, delay);
+  }
+}
+
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -36,31 +50,33 @@ export function Header() {
   // Состояния данных
   const [logo, setLogo] = useState<{ logoUrl: string; logoDarkUrl: string | null } | null>(null);
   const [logoLoading, setLogoLoading] = useState(true);
-  const [promoBanner, setPromoBanner] = useState<PromoBanner | null>(null); // <--- Добавлено состояние баннера
+  const [promoBanner, setPromoBanner] = useState<PromoBanner | null>(null);
 
   const { totalItems } = useCart();
   const { formatPrice } = useSettings();
 
   useEffect(() => {
-    loadData();
-  }, []);
+    let isMounted = true;
 
-  const loadData = async () => {
-    // Загружаем логотип и баннер параллельно
-    try {
+    const loadData = async () => {
+      // Запускаем параллельную загрузку логотипа и баннера с бесконечным ретраем.
+      // Если сервер лежит, мы будем ждать вечно, показывая скелетон логотипа.
       const [logoData, bannerData] = await Promise.all([
-        publicApi.getSiteLogo().catch(() => null),
-        publicApi.getPromoBanner().catch(() => null)
+        fetchWithInfiniteRetry(() => publicApi.getSiteLogo()),
+        fetchWithInfiniteRetry(() => publicApi.getPromoBanner())
       ]);
 
-      setLogo(logoData);
-      setPromoBanner(bannerData);
-    } catch (error) {
-      console.error('Error loading header data:', error);
-    } finally {
-      setLogoLoading(false);
-    }
-  };
+      if (isMounted) {
+        setLogo(logoData);
+        setPromoBanner(bannerData);
+        setLogoLoading(false); // Убираем скелетон только после успеха
+      }
+    };
+
+    loadData();
+
+    return () => { isMounted = false; };
+  }, []);
 
   // Эффект для живого поиска
   useEffect(() => {
@@ -68,6 +84,7 @@ export function Header() {
       if (searchQuery.trim().length > 1) {
         setIsSearching(true);
         try {
+          // Для поиска бесконечный ретрай не нужен (пользователь может передумать искать)
           const response = await publicApi.getProducts({
             search: searchQuery,
             limit: 6
@@ -123,6 +140,7 @@ export function Header() {
             {/* Logo */}
             <Link to="/" className="flex-shrink-0 group">
               {logoLoading ? (
+                // Скелетон, который будет висеть, пока сервер не ответит
                 <div className="h-8 sm:h-10 lg:h-12 w-24 sm:w-32 bg-gray-100 animate-pulse rounded"></div>
               ) : logo?.logoUrl ? (
                 <img
