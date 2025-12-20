@@ -7,10 +7,9 @@ interface HeroContent {
   title: string;
   subtitle: string;
   image: string;
-  mobileImage?: string; // <--- Добавлено
+  mobileImage?: string;
   ctaText: string;
   ctaLink: string;
-  // ... цвета ...
   buttonTextColor?: string;
   buttonBgColor?: string;
   buttonHoverTextColor?: string;
@@ -23,34 +22,38 @@ export function Hero() {
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
-    fetchHeroContent();
+    // Запускаем загрузку с возможностью повторных попыток
+    fetchHeroContentWithRetry();
   }, []);
 
-  const fetchHeroContent = async () => {
+  const fetchHeroContentWithRetry = async (retries = 3, delay = 1000) => {
     try {
       const data = await publicApi.getHeroContent();
       setContent(data);
-    } catch (error) {
-      console.error('Error fetching hero content:', error);
-      // Fallback
-      setContent({
-        title: 'НАЙДИТЕ\nИДЕАЛЬНЫЕ\nЧАСЫ.',
-        subtitle: 'Японское мастерство и точность в каждой детали',
-        image: 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=1600&q=80',
-        mobileImage: '',
-        ctaText: 'Смотреть коллекцию',
-        ctaLink: '/catalog',
-        // ... цвета ...
-      });
-    } finally {
       setLoading(false);
+    } catch (error) {
+      if (retries > 0) {
+        console.warn(`Hero fetch failed, retrying in ${delay}ms... (${retries} left)`);
+        setTimeout(() => fetchHeroContentWithRetry(retries - 1, delay), delay);
+      } else {
+        console.error('Error fetching hero content after retries:', error);
+        // Fallback включается только когда все попытки исчерпаны
+        setContent({
+          title: 'НАЙДИТЕ\nИДЕАЛЬНЫЕ\nЧАСЫ.',
+          subtitle: 'Японское мастерство и точность в каждой детали',
+          image: 'https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?w=1600&q=80',
+          mobileImage: '',
+          ctaText: 'Смотреть коллекцию',
+          ctaLink: '/catalog',
+        });
+        setLoading(false);
+      }
     }
   };
 
-  if (loading) return null; // Или спиннер
+  if (loading) return null; // Или можно вернуть скелетон/спиннер
   if (!content) return null;
 
-  // Динамические стили кнопки (как в предыдущем шаге)
   const buttonStyle = {
     color: isHovered
       ? (content.buttonHoverTextColor || '#000000')
@@ -65,10 +68,8 @@ export function Hero() {
 
   return (
     <section className="relative w-full min-h-screen flex items-center bg-black overflow-hidden">
-      {/* Background Image Layer with Picture tag for Art Direction */}
       <div className="absolute inset-0 z-0">
         <picture>
-          {/* Если есть мобильное изображение, показываем его на экранах < 768px */}
           {content.mobileImage && (
             <source media="(max-width: 768px)" srcSet={content.mobileImage} />
           )}
@@ -81,7 +82,6 @@ export function Hero() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent"></div>
       </div>
 
-      {/* Content Layer */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-16 py-20 lg:py-0">
         <div className="max-w-3xl space-y-8 animate-fade-in-up">
           <div className="space-y-6">

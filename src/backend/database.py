@@ -2,7 +2,7 @@
 Database configuration and connection
 SQLite database with SQLAlchemy ORM
 """
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text, DateTime, ForeignKey, JSON,BigInteger
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, Text, DateTime, ForeignKey, JSON,BigInteger,event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
@@ -16,7 +16,12 @@ engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False}  # Needed for SQLite
 )
-
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 # Session
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
